@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מאיה - תנ"ך לבחינה שכבת ז'</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0f0c29;
+    --card: #1a1540;
+    --accent1: #7c3aed;
+    --accent2: #db2777;
+    --accent3: #0891b2;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    min-height: 100vh;
+    color: var(--text);
+    direction: rtl;
+  }
+
+  /* ===== HUD ===== */
+  #hud {
+    position: fixed;
+    top: 0; right: 0; left: 0;
+    background: rgba(15,12,41,0.95);
+    backdrop-filter: blur(8px);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    border-bottom: 1px solid rgba(124,58,237,0.3);
+  }
+
+  .hud-score {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .hud-score .icon { font-size: 18px; }
+  .hud-score .val { color: var(--gold); font-size: 20px; }
+
+  #timer {
+    background: rgba(124,58,237,0.3);
+    border: 1px solid var(--accent1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  #timer.urgent { color: var(--red); border-color: var(--red); animation: pulse 0.5s infinite; }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; }
+    50% { opacity:0.6; }
+  }
+
+  /* ===== MAIN ===== */
+  #app {
+    padding-top: 70px;
+    padding-bottom: 40px;
+    max-width: 480px;
+    margin: 0 auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* ===== HOME SCREEN ===== */
+  #home-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .title-emoji { font-size: 60px; display: block; margin-bottom: 12px; }
+
+  .main-title {
+    font-size: 28px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  .sub-title {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .exam-badge {
+    background: linear-gradient(135deg, var(--accent2), #be185d);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-bottom: 28px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .exam-badge .date { font-size: 20px; color: #fde68a; }
+
+  .missions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mission-card {
+    background: var(--card);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    text-align: right;
+  }
+
+  .mission-card:hover, .mission-card:active {
+    transform: scale(1.02);
+    border-color: var(--accent1);
+    box-shadow: 0 4px 20px rgba(124,58,237,0.3);
+  }
+
+  .mission-card.locked { opacity: 0.45; cursor: not-allowed; }
+  .mission-card.done { border-color: var(--green); }
+  .mission-card.done .mission-icon { background: rgba(16,185,129,0.2); }
+
+  .mission-icon {
+    width: 52px; height: 52px;
+    background: rgba(124,58,237,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .mission-info { flex: 1; }
+  .mission-title { font-size: 16px; font-weight: 700; }
+  .mission-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .mission-status {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen { display: none; }
+
+  .game-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .mission-label {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .question-title {
+    font-size: 20px;
+    font-weight: 900;
+    margin: 6px 0 2px;
+    background: linear-gradient(90deg, #c084fc, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    height: 6px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    border-radius: 10px;
+    transition: width 0.4s;
+  }
+
+  /* question card */
+  .q-card {
+    background: var(--card);
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .q-text {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  /* choice buttons */
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+
+  .choice-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: right;
+    direction: rtl;
+    transition: all 0.15s;
+    line-height: 1.5;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    background: rgba(124,58,237,0.2);
+    border-color: var(--accent1);
+  }
+
+  .choice-btn.correct {
+    background: rgba(16,185,129,0.2);
+    border-color: var(--green);
+    color: #6ee7b7;
+    font-weight: 700;
+  }
+
+  .choice-btn.wrong {
+    background: rgba(239,68,68,0.15);
+    border-color: var(--red);
+    color: #fca5a5;
+  }
+
+  .choice-btn:disabled { cursor: default; }
+
+  /* feedback */
+  .feedback-box {
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+  }
+
+  .feedback-box.show { display: block; }
+  .feedback-box.ok { background: rgba(16,185,129,0.15); border: 1px solid var(--green); }
+  .feedback-box.fail { background: rgba(239,68,68,0.1); border: 1px solid var(--red); }
+
+  .feedback-emoji { font-size: 22px; margin-bottom: 4px; }
+
+  /* next btn */
+  .next-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    display: none;
+    margin-top: 12px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .next-btn.show { display: block; }
+  .next-btn:active { transform: scale(0.98); }
+
+  /* ===== FLIP CARDS ===== */
+  .flip-grid { display: flex; flex-direction: column; gap: 12px; }
+
+  .flip-card-wrapper {
+    perspective: 800px;
+    height: 110px;
+    cursor: pointer;
+  }
+
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+
+  .flip-card-wrapper.flipped .flip-card-inner { transform: rotateY(180deg); }
+
+  .flip-front, .flip-back {
+    position: absolute;
+    width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .flip-front {
+    background: rgba(124,58,237,0.2);
+    border: 1.5px solid rgba(124,58,237,0.5);
+  }
+
+  .flip-back {
+    background: rgba(16,185,129,0.15);
+    border: 1.5px solid var(--green);
+    transform: rotateY(180deg);
+    font-size: 14px;
+    color: #6ee7b7;
+  }
+
+  .flip-hint {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ===== SORTING ===== */
+  .sort-buckets { display: flex; gap: 10px; margin-bottom: 14px; }
+
+  .sort-bucket {
+    flex: 1;
+    background: rgba(124,58,237,0.1);
+    border: 2px dashed rgba(124,58,237,0.4);
+    border-radius: 12px;
+    padding: 10px;
+    min-height: 90px;
+    text-align: center;
+  }
+
+  .sort-bucket-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #c084fc;
+    margin-bottom: 8px;
+  }
+
+  .sort-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+  .sort-item {
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .sort-item:hover:not(.used) {
+    background: rgba(124,58,237,0.2);
+    border-color: var(--accent1);
+  }
+
+  .sort-item.used { opacity: 0.3; cursor: not-allowed; }
+  .sort-item.in-bucket { font-size: 12px; padding: 6px 10px; cursor: default; }
+  .sort-item.in-bucket:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+  /* ===== ORDER CHAIN ===== */
+  .order-items { display: flex; flex-direction: column; gap: 8px; }
+
+  .order-item {
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.15s;
+  }
+
+  .order-item:hover:not(.selected):not(.locked-order) {
+    background: rgba(124,58,237,0.2);
+    border-color: var(--accent1);
+  }
+
+  .order-item.selected {
+    background: rgba(124,58,237,0.25);
+    border-color: var(--accent1);
+  }
+
+  .order-num {
+    width: 28px; height: 28px;
+    background: rgba(124,58,237,0.4);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .order-num.filled { background: var(--accent2); }
+  .order-num.correct-o { background: var(--green); }
+  .order-num.wrong-o { background: var(--red); }
+
+  /* ===== TRUE/FALSE BLITZ ===== */
+  .tf-statement {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    padding: 20px;
+    background: rgba(124,58,237,0.15);
+    border-radius: 14px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .tf-buttons { display: flex; gap: 12px; }
+
+  .tf-btn {
+    flex: 1;
+    padding: 18px;
+    border-radius: 14px;
+    border: none;
+    font-family: 'Heebo', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tf-btn.true-btn {
+    background: rgba(16,185,129,0.2);
+    border: 2px solid var(--green);
+    color: #6ee7b7;
+  }
+
+  .tf-btn.false-btn {
+    background: rgba(239,68,68,0.15);
+    border: 2px solid var(--red);
+    color: #fca5a5;
+  }
+
+  .tf-btn:hover:not(:disabled) { transform: scale(1.04); }
+  .tf-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ===== FIND IN TEXT ===== */
+  .text-passage {
+    background: rgba(8,145,178,0.1);
+    border: 1px solid rgba(8,145,178,0.4);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 15px;
+    line-height: 2;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .text-passage .highlight {
+    background: rgba(245,158,11,0.3);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-weight: 700;
+    color: #fde68a;
+  }
+
+  /* ===== END SCREEN ===== */
+  #end-screen {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .stars-row {
+    font-size: 48px;
+    margin: 10px 0;
+    letter-spacing: 4px;
+  }
+
+  .final-score-big {
+    font-size: 60px;
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--gold), #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .rank-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border-radius: 20px;
+    padding: 8px 24px;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 10px 0 20px;
+  }
+
+  .score-breakdown {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+
+  .score-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 14px;
+  }
+
+  .score-row:last-child { border: none; }
+  .score-row .pts { color: var(--gold); font-weight: 700; }
+
+  .restart-btn {
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border: none;
+    border-radius: 14px;
+    padding: 16px 32px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .back-home-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    padding: 14px 32px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* mission end card */
+  #mission-end {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .mission-result-emoji { font-size: 64px; display: block; margin-bottom: 12px; }
+
+  .mission-result-title {
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+
+  .mission-result-score {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+
+  .lesson-box {
+    background: rgba(8,145,178,0.15);
+    border: 1px solid rgba(8,145,178,0.4);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: right;
+    margin-bottom: 20px;
+  }
+
+  .lesson-title { font-weight: 700; color: #67e8f9; margin-bottom: 8px; font-size: 15px; }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(30,27,75,0.95);
+    border: 1px solid var(--accent1);
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 200;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* sort bucket placed items */
+  .placed-item {
+    background: rgba(124,58,237,0.2);
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-score">
+    <span class="icon">⭐</span>
+    <span class="val" id="score-display">0</span>
+  </div>
+  <div id="timer">00:00</div>
+  <div class="hud-score">
+    <span class="icon">📚</span>
+    <span style="font-size:13px;color:var(--muted)" id="mission-counter">0/5</span>
+  </div>
+</div>
+
+<div id="app">
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen">
+    <span class="title-emoji">📖</span>
+    <div class="main-title">מאיה – תנ"ך לבחינה</div>
+    <div class="sub-title">שכבת ז׳ • הכנה מלאה לבחינה</div>
+
+    <div class="exam-badge">
+      🗓️ הבחינה: <span class="date">יום שני 23/11/2026</span><br>
+      <span style="font-size:13px;opacity:0.85">עוד <span id="days-left">?</span> ימים — בואי נתכונן! 💪</span>
+    </div>
+
+    <div class="missions-list" id="missions-list">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen">
+    <div class="game-header">
+      <div class="mission-label" id="mission-label">משימה</div>
+      <div class="question-title" id="mission-title-game">-</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <div id="question-area"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">הבאה ➡️</button>
+  </div>
+
+  <!-- MISSION END -->
+  <div id="mission-end">
+    <span class="mission-result-emoji" id="me-emoji">🎉</span>
+    <div class="mission-result-title" id="me-title">-</div>
+    <div class="mission-result-score" id="me-score">0 נקודות</div>
+    <div class="lesson-box" id="me-lesson"></div>
+    <button class="next-btn show" onclick="goHome()" style="display:block">חזרה לראשי 🏠</button>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="end-screen">
+    <div class="stars-row" id="stars-row">⭐⭐⭐</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">הסתיים! 🎓</div>
+    <div class="final-score-big" id="final-score">0</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:8px">נקודות</div>
+    <div class="rank-badge" id="rank-badge">-</div>
+    <div class="score-breakdown" id="score-breakdown"></div>
+    <button class="restart-btn" onclick="fullRestart()">🔄 שחקי שוב</button>
+  </div>
+
+</div>
+
+<div id="toast">+10 נקודות!</div>
+
+<script>
+// ===== STATE =====
+let totalScore = 0;
+let timerInterval = null;
+let timerSecs = 0;
+let currentMission = null;
+let currentQ = 0;
+let missionScore = 0;
+let missionDone = [];
+let missionScores = {};
+let pendingAnswer = false;
+
+// sort state
+let sortState = {};
+// order state
+let orderState = {};
+
+// ===== MISSIONS =====
+const MISSIONS = [
+  {
+    id: 0,
+    icon: '📜',
+    title: 'חלקי התנ"ך',
+    desc: 'סדר הספרים, חלוקה לחלקים',
+    color: '#7c3aed',
+    lesson: 'התנ"ך מחולק ל-3 חלקים: תורה (5 ספרים), נביאים (21 ספרים), כתובים (13 ספרים). סדר ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים. סדר נביאים ראשונים: יהושע, שופטים, שמואל, מלכים.',
+    questions: [
+      {
+        type: 'choice',
+        q: 'לכמה חלקים מחולק התנ"ך?',
+        opts: ['2', '3', '4', '5'],
+        ans: 1,
+        exp: 'התנ"ך מחולק ל-3 חלקים: תורה, נביאים וכתובים – ת-נ-ך!'
+      },
+      {
+        type: 'order',
+        q: 'סדרי את ספרי התורה בסדר הנכון:',
+        items: ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'],
+        exp: 'סדר ספרי התורה: בראשית → שמות → ויקרא → במדבר → דברים'
+      },
+      {
+        type: 'choice',
+        q: 'כמה ספרים יש בתורה?',
+        opts: ['3', '4', '5', '6'],
+        ans: 2,
+        exp: '5 ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים'
+      },
+      {
+        type: 'tf',
+        q: 'ספר תהילים שייך לחלק "נביאים"',
+        ans: false,
+        exp: 'לא נכון! תהילים שייך לחלק "כתובים". נביאים כולל: יהושע, שופטים, שמואל, מלכים, ישעיה, ירמיה...'
+      },
+      {
+        type: 'choice',
+        q: 'מה סדר החלקים הנכון של התנ"ך?',
+        opts: ['נביאים, תורה, כתובים', 'תורה, כתובים, נביאים', 'תורה, נביאים, כתובים', 'כתובים, נביאים, תורה'],
+        ans: 2,
+        exp: 'ת-נ-ך: תורה → נביאים → כתובים. זה גם ראשי התיבות!'
+      },
+      {
+        type: 'tf',
+        q: 'ספר יהושע שייך לנביאים ראשונים',
+        ans: true,
+        exp: 'נכון! נביאים ראשונים: יהושע, שופטים, שמואל א׳-ב׳, מלכים א׳-ב׳'
+      }
+    ]
+  },
+  {
+    id: 1,
+    icon: '🕊️',
+    title: 'קובץ תרי-עשר',
+    desc: 'שנים עשר הנביאים הקטנים',
+    color: '#0891b2',
+    lesson: 'תרי-עשר = ארמית ל"שנים עשר". הנביאים הקטנים הם: הושע, יואל, עמוס, עובדיה, יונה, מיכה, נחום, חבקוק, צפניה, חגי, זכריה, מלאכי. הסדר: מהקדום לאחרון (עמוס הקדום ביותר, מלאכי האחרון).',
+    questions: [
+      {
+        type: 'choice',
+        q: 'מה פירוש "תרי-עשר"?',
+        opts: ['שלושה עשר', 'שנים עשר', 'אחד עשר', 'עשרה'],
+        ans: 1,
+        exp: 'תרי-עשר זה ארמית לשנים עשר! כך קוראים לאוסף שנים-עשר הנביאים הקטנים.'
+      },
+      {
+        type: 'choice',
+        q: 'כמה ספרי נביאים יש בקובץ תרי-עשר?',
+        opts: ['10', '11', '12', '13'],
+        ans: 2,
+        exp: '12 נביאים קטנים מהושע ועד מלאכי'
+      },
+      {
+        type: 'tf',
+        q: 'ספר יונה הוא חלק מקובץ תרי-עשר',
+        ans: true,
+        exp: 'נכון! יונה הוא אחד מ-12 הנביאים הקטנים. הסיפור על הדג הגדול!'
+      },
+      {
+        type: 'choice',
+        q: 'מי הנביא הראשון בקובץ תרי-עשר?',
+        opts: ['עמוס', 'הושע', 'יואל', 'מיכה'],
+        ans: 1,
+        exp: 'הושע הוא הראשון בסדר קובץ תרי-עשר, אם כי עמוס חי קודמו'
+      },
+      {
+        type: 'choice',
+        q: 'מי הנביא האחרון בתרי-עשר (ואחרון בנביאים בכלל)?',
+        opts: ['זכריה', 'חגי', 'מלאכי', 'עובדיה'],
+        ans: 2,
+        exp: 'מלאכי הוא הנביא האחרון בתרי-עשר ובנביאים כולם. לאחריו אין נבואה!'
+      },
+      {
+        type: 'tf',
+        q: 'ספר ישעיה שייך לקובץ תרי-עשר',
+        ans: false,
+        exp: 'לא נכון! ישעיה הוא נביא גדול – ספר עצמאי בנביאים אחרונים. תרי-עשר זה רק הנביאים הקטנים.'
+      }
+    ]
+  },
+  {
+    id: 2,
+    icon: '🎉',
+    title: 'מגילות ומועדים',
+    desc: 'איזו מגילה קוראים בכל חג?',
+    color: '#db2777',
+    lesson: 'חמש מגילות: שיר השירים (פסח), רות (שבועות), איכה (תשעה באב), קהלת (סוכות), אסתר (פורים). סימן: פ-ש-א-ק-פ → פסח, שבועות, אב, קהלת/סוכות, פורים.',
+    questions: [
+      {
+        type: 'choice',
+        q: 'איזו מגילה קוראים בחג הפסח?',
+        opts: ['רות', 'שיר השירים', 'אסתר', 'קהלת'],
+        ans: 1,
+        exp: 'שיר השירים – קוראים בפסח! סיפור האהבה מייצג את האהבה בין עם ישראל לה׳ בזמן יציאת מצרים.'
+      },
+      {
+        type: 'choice',
+        q: 'איזו מגילה קוראים בחג שבועות?',
+        opts: ['אסתר', 'איכה', 'רות', 'שיר השירים'],
+        ans: 2,
+        exp: 'ספר רות! קוראים בשבועות כי המעשה מתרחש בזמן קציר החיטים, ורות מגיעה לעם ישראל – כמו שאנחנו קיבלנו תורה.'
+      },
+      {
+        type: 'tf',
+        q: 'מגילת איכה קוראים בתשעה באב',
+        ans: true,
+        exp: 'נכון! איכה – קינה על חורבן ירושלים. קוראים בתשעה באב, יום האבל הלאומי.'
+      },
+      {
+        type: 'choice',
+        q: 'איזו מגילה קוראים בפורים?',
+        opts: ['רות', 'קהלת', 'אסתר', 'יונה'],
+        ans: 2,
+        exp: 'מגילת אסתר! כולם יודעים – המגילה על המן ואסתר ומרדכי.'
+      },
+      {
+        type: 'choice',
+        q: 'איזו מגילה קוראים בחג הסוכות?',
+        opts: ['קהלת', 'שיר השירים', 'רות', 'איכה'],
+        ans: 0,
+        exp: 'קהלת! "הבל הבלים" – הרהורים על חיי עולם ומוות, מתאים לסוכות שהוא זמן שמחה אבל גם הרהור.'
+      },
+      {
+        type: 'sort',
+        q: 'סדרי את המגילות לפי החג שלהן:',
+        bucketA: 'קוראים בחגי תשרי',
+        bucketB: 'קוראים בחגי ניסן',
+        items: [
+          { text: 'קהלת', bucket: 0 },
+          { text: 'שיר השירים', bucket: 1 },
+          { text: 'איכה', bucket: 0 },
+          { text: 'רות', bucket: 1 }
+        ],
+        exp: 'חגי תשרי: קהלת (סוכות), איכה (תשעה באב – לא חג אבל בחודש תשרי-ת לא, אב!). חגי ניסן: שיר השירים (פסח).\n\nהערה: רות היא שבועות (סיוון), לא ניסן ממש – אבל בהשוואה לתשרי היא קרובה יותר לפסח.'
+      }
+    ]
+  },
+  {
+    id: 3,
+    icon: '🔍',
+    title: 'התמצאות במקרא',
+    desc: 'ספר, פרק, פסוק – לזהות ולמצוא',
+    color: '#f59e0b',
+    lesson: 'התמצאות במקרא: כל ספר מחולק לפרקים, כל פרק לפסוקים. למשל: בראשית א:א = ספר בראשית, פרק א, פסוק א. הפסוק הראשון בתורה: "בְּרֵאשִׁית בָּרָא אֱלֹהִים". חשוב לדעת: להזיז אצבע בין ספר → פרק → פסוק.',
+    questions: [
+      {
+        type: 'choice',
+        q: 'מה פירוש הסימון: שמות ב:י?',
+        opts: ['ספר שמות, פרק ב׳, פסוק י׳', 'ספר שמות, דף ב׳, שורה י׳', 'פרק שמות, ב׳ ספרים', 'פרק ב׳, פסוק י׳ בתורה'],
+        ans: 0,
+        exp: 'שמות ב:י = ספר שמות, פרק ב׳, פסוק י׳. זהו הפסוק על הוצאת משה מהמים!'
+      },
+      {
+        type: 'choice',
+        q: 'פסוק מופיע ב"בראשית א:א" – באיזה ספר?',
+        opts: ['שמות', 'ויקרא', 'בראשית', 'במדבר'],
+        ans: 2,
+        exp: 'בראשית! הספר הראשון בתורה. בראשית א:א = "בְּרֵאשִׁית בָּרָא אֱלֹהִים"'
+      },
+      {
+        type: 'tf',
+        q: 'בסימון "ישעיה מ:כח" – המספר "מ" הוא מספר הפסוק',
+        ans: false,
+        exp: 'לא נכון! בסימון ספר:פרק:פסוק – "מ" הוא מספר הפרק (40 בגימטריה), ו"כח" הוא הפסוק (28).'
+      },
+      {
+        type: 'choice',
+        q: 'מה הסדר הנכון לחפש פסוק ספציפי?',
+        opts: [
+          'פסוק ← פרק ← ספר',
+          'ספר ← פרק ← פסוק',
+          'פרק ← ספר ← פסוק',
+          'ספר ← פסוק ← פרק'
+        ],
+        ans: 1,
+        exp: 'ספר ← פרק ← פסוק! קודם מוצאים את הספר, אחר כך את הפרק, ורק אז את הפסוק.'
+      },
+      {
+        type: 'choice',
+        q: 'כמה ספרים יש בתורה (ומה מספרם בתנ"ך)?',
+        opts: [
+          '5 ספרים, הראשונים בתנ"ך',
+          '7 ספרים, בחלק הנביאים',
+          '5 ספרים, בחלק הכתובים',
+          '4 ספרים, בתחילת הנביאים'
+        ],
+        ans: 0,
+        exp: 'חמשת ספרי התורה הם הראשונים בתנ"ך: בראשית, שמות, ויקרא, במדבר, דברים.'
+      },
+      {
+        type: 'flipcards',
+        q: 'הכירי את הפסוקים המפורסמים – הפכי כדי לראות:',
+        cards: [
+          { front: '"בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ"', back: 'בראשית א:א – הפסוק הראשון בתנ"ך!' },
+          { front: '"שְׁמַע יִשְׂרָאֵל ה׳ אֱלֹהֵינוּ ה׳ אֶחָד"', back: 'דברים ו:ד – פסוק היסוד של היהדות' },
+          { front: '"וְאָהַבְתָּ לְרֵעֲךָ כָּמוֹךָ"', back: 'ויקרא יט:יח – "כלל גדול בתורה"' },
+          { front: '"לֹא תִרְצָח, לֹא תִנְאָף, לֹא תִגְנֹב"', back: 'שמות כ – שלושה מעשרת הדיברות' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 4,
+    icon: '🎵',
+    title: 'טעמי מקרא',
+    desc: 'זיהוי, מיקום, חילוק פסוק',
+    color: '#10b981',
+    lesson: 'טעמי מקרא: כל מילה במקרא נושאת טעם. יש טעמים "מפסיקים" (מחלקים את הפסוק לחצאים – כמו סילוק ואתנחתא) ו"מחברים" (מחברים מילים). האתנחתא (◌֑) = הפסקה באמצע פסוק. הסוף = סוף הפסוק.',
+    questions: [
+      {
+        type: 'choice',
+        q: 'מה תפקיד טעמי המקרא?',
+        opts: [
+          'לקשט את הטקסט',
+          'לציין ניגון, הטעמה וחלוקת הפסוק',
+          'לתרגם את המילים',
+          'לסמן שגיאות כתיב'
+        ],
+        ans: 1,
+        exp: 'טעמי המקרא מציינים גם את הניגון (מנגינה לקריאה בבית-הכנסת), גם את ההטעמה וגם את החלוקה הלוגית של הפסוק.'
+      },
+      {
+        type: 'tf',
+        q: 'האתנחתא מחלקת את הפסוק לשני חצאים',
+        ans: true,
+        exp: 'נכון! האתנחתא (נראית כמו ◌֑ מתחת למילה) מציינת הפסקה גדולה באמצע הפסוק – כמו פסיק חזק.'
+      },
+      {
+        type: 'choice',
+        q: 'כמה חלקים עיקריים מחלקת האתנחתא את הפסוק?',
+        opts: ['3', '4', '2', '5'],
+        ans: 2,
+        exp: 'שני חלקים! החלק לפני האתנחתא והחלק אחריה. לאחר האתנחתא מגיע הסילוק – סוף הפסוק.'
+      },
+      {
+        type: 'choice',
+        q: 'אילו מהטעמים הבאים הוא "מפסיק" (מחלק את הפסוק)?',
+        opts: ['מרכא', 'מונח', 'אתנחתא', 'שלשלת'],
+        ans: 2,
+        exp: 'האתנחתא היא טעם מפסיק! היא מחלקת את הפסוק לשני חצאים.'
+      },
+      {
+        type: 'tf',
+        q: 'כל מילה במקרא נושאת טעם',
+        ans: true,
+        exp: 'נכון! כל מילה במקרא מנוקדת ונושאת טעם. זה מה שמאפשר קריאה מדויקת ומנגינה אחידה בבית-הכנסת.'
+      },
+      {
+        type: 'choice',
+        q: 'מה ההבדל בין טעם "מפסיק" לטעם "מחבר"?',
+        opts: [
+          'מפסיק – מנגינה גבוהה, מחבר – מנגינה נמוכה',
+          'מפסיק – יוצר הפסקה והפרדה, מחבר – מחבר מילים יחד',
+          'מפסיק – בתחילת פסוק, מחבר – בסוף פסוק',
+          'אין הבדל, שניהם אותו דבר'
+        ],
+        ans: 1,
+        exp: 'מפסיק = יוצר הפסקה לוגית בין חלקי הפסוק. מחבר = מחבר מילות ביניים לחלק הסמוך. ביחד הם בונים את מבנה הפסוק.'
+      }
+    ]
+  }
+];
+
+// ===== TIMER =====
+function startTimer() {
+  timerSecs = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timerSecs++;
+    const m = String(Math.floor(timerSecs/60)).padStart(2,'0');
+    const s = String(timerSecs%60).padStart(2,'0');
+    document.getElementById('timer').textContent = m + ':' + s;
+  }, 1000);
+}
+
+function stopTimer() { clearInterval(timerInterval); }
+
+// ===== DAYS LEFT =====
+function calcDaysLeft() {
+  const exam = new Date('2026-11-23');
+  const now = new Date();
+  const diff = Math.ceil((exam - now) / 86400000);
+  document.getElementById('days-left').textContent = diff > 0 ? diff : 0;
+}
+
+// ===== HOME =====
+function renderHome() {
+  document.getElementById('home-screen').style.display = 'block';
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('mission-end').style.display = 'none';
+  document.getElementById('end-screen').style.display = 'none';
+  document.getElementById('mission-counter').textContent = missionDone.length + '/5';
+
+  const list = document.getElementById('missions-list');
+  list.innerHTML = '';
+  MISSIONS.forEach((m, i) => {
+    const done = missionDone.includes(m.id);
+    const card = document.createElement('div');
+    card.className = 'mission-card' + (done ? ' done' : '');
+    card.innerHTML = `
+      <div class="mission-icon">${m.icon}</div>
+      <div class="mission-info">
+        <div class="mission-title">${m.title}</div>
+        <div class="mission-desc">${m.desc}</div>
+        ${done && missionScores[m.id] !== undefined ? `<div style="font-size:12px;color:var(--gold);margin-top:3px">הניקוד שלך: ${missionScores[m.id]}</div>` : ''}
+      </div>
+      <div class="mission-status">${done ? '✅' : '▶️'}</div>
+    `;
+    card.addEventListener('click', () => startMission(m.id));
+    list.appendChild(card);
+  });
+
+  if (missionDone.length === MISSIONS.length) {
+    setTimeout(showEndScreen, 400);
+  }
+}
+
+function goHome() { renderHome(); }
+
+// ===== START MISSION =====
+function startMission(id) {
+  currentMission = MISSIONS.find(m => m.id === id);
+  currentQ = 0;
+  missionScore = 0;
+  pendingAnswer = false;
+  sortState = {};
+  orderState = {};
+
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  document.getElementById('mission-end').style.display = 'none';
+  document.getElementById('mission-label').textContent = 'משימה ' + (id+1) + ' מתוך 5';
+  document.getElementById('mission-title-game').textContent = currentMission.title;
+
+  startTimer();
+  renderQuestion();
+}
+
+// ===== RENDER QUESTION =====
+function renderQuestion() {
+  const qs = currentMission.questions;
+  const prog = (currentQ / qs.length) * 100;
+  document.getElementById('progress-bar').style.width = prog + '%';
+  document.getElementById('next-btn').classList.remove('show');
+  pendingAnswer = false;
+
+  const q = qs[currentQ];
+  const area = document.getElementById('question-area');
+
+  if (q.type === 'choice') renderChoice(q, area);
+  else if (q.type === 'tf') renderTF(q, area);
+  else if (q.type === 'flipcards') renderFlip(q, area);
+  else if (q.type === 'sort') renderSort(q, area);
+  else if (q.type === 'order') renderOrder(q, area);
+}
+
+// ===== CHOICE =====
+function renderChoice(q, area) {
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      <div class="choices" id="choices">
+        ${q.opts.map((o,i) => `<button class="choice-btn" onclick="answerChoice(${i},${q.ans},'${escStr(q.exp)}')">${o}</button>`).join('')}
+      </div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>
+  `;
+}
+
+function escStr(s) {
+  return s.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+}
+
+function answerChoice(picked, correct, exp) {
+  if (pendingAnswer) return;
+  pendingAnswer = true;
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach((b,i) => {
+    b.disabled = true;
+    if (i === correct) b.classList.add('correct');
+    if (i === picked && picked !== correct) b.classList.add('wrong');
+  });
+  const ok = picked === correct;
+  if (ok) { missionScore += 10; totalScore += 10; updateScore(); showToast('+10 ✨'); }
+  showFeedback(ok, exp);
+  document.getElementById('next-btn').classList.add('show');
+}
+
+// ===== TRUE/FALSE =====
+function renderTF(q, area) {
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="tf-statement">${q.q}</div>
+      <div class="tf-buttons">
+        <button class="tf-btn true-btn" onclick="answerTF(true,${q.ans},'${escStr(q.exp)}')">✅ נכון</button>
+        <button class="tf-btn false-btn" onclick="answerTF(false,${q.ans},'${escStr(q.exp)}')">❌ לא נכון</button>
+      </div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>
+  `;
+}
+
+function answerTF(picked, correct, exp) {
+  if (pendingAnswer) return;
+  pendingAnswer = true;
+  document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
+  const ok = (picked === correct);
+  if (ok) { missionScore += 10; totalScore += 10; updateScore(); showToast('+10 ✨'); }
+  showFeedback(ok, exp);
+  document.getElementById('next-btn').classList.add('show');
+}
+
+// ===== FLIP CARDS =====
+function renderFlip(q, area) {
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      <div class="flip-grid">
+        ${q.cards.map((c,i) => `
+          <div class="flip-card-wrapper" id="fc${i}" onclick="flipCard(${i})">
+            <div class="flip-card-inner">
+              <div class="flip-front">${c.front}<span class="flip-hint">הקלי להפוך 👆</span></div>
+              <div class="flip-back">${c.back}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  missionScore += 10; totalScore += 10; updateScore();
+  document.getElementById('next-btn').classList.add('show');
+}
+
+function flipCard(i) {
+  const el = document.getElementById('fc'+i);
+  el.classList.toggle('flipped');
+}
+
+// ===== SORT =====
+function renderSort(q, area) {
+  sortState = {
+    q: q,
+    placedA: [],
+    placedB: []
+  };
+
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      <div class="sort-buckets">
+        <div class="sort-bucket">
+          <div class="sort-bucket-title">${q.bucketA}</div>
+          <div id="bucketA"></div>
+        </div>
+        <div class="sort-bucket">
+          <div class="sort-bucket-title">${q.bucketB}</div>
+          <div id="bucketB"></div>
+        </div>
+      </div>
+      <div class="sort-items" id="sort-items">
+        ${q.items.map((item,i) => `<div class="sort-item" id="si${i}" onclick="pickSortItem(${i})">${item.text}</div>`).join('')}
+      </div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>
+  `;
+
+  sortState.selected = null;
+}
+
+function pickSortItem(i) {
+  if (pendingAnswer) return;
+  const item = document.getElementById('si' + i);
+  if (item.classList.contains('used')) return;
+
+  if (sortState.selected === i) {
+    item.style.borderColor = '';
+    sortState.selected = null;
+    return;
+  }
+
+  document.querySelectorAll('.sort-item').forEach(el => el.style.borderColor = '');
+  item.style.borderColor = 'var(--gold)';
+  sortState.selected = i;
+
+  // show bucket selection
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback-box show';
+  fb.style.background = 'rgba(245,158,11,0.1)';
+  fb.style.border = '1px solid var(--gold)';
+  fb.innerHTML = `
+    <div style="text-align:center;font-size:14px;margin-bottom:10px">📌 שייכי את "<strong>${sortState.q.items[i].text}</strong>" ל:</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="placeSortItem(0)" style="flex:1;padding:10px;background:rgba(124,58,237,0.2);border:1px solid var(--accent1);border-radius:10px;color:white;font-family:Heebo,sans-serif;font-size:13px;cursor:pointer">${sortState.q.bucketA}</button>
+      <button onclick="placeSortItem(1)" style="flex:1;padding:10px;background:rgba(219,39,119,0.2);border:1px solid var(--accent2);border-radius:10px;color:white;font-family:Heebo,sans-serif;font-size:13px;cursor:pointer">${sortState.q.bucketB}</button>
+    </div>
+  `;
+}
+
+function placeSortItem(bucketIdx) {
+  const i = sortState.selected;
+  if (i === null) return;
+  const item = sortState.q.items[i];
+  const el = document.getElementById('si' + i);
+  el.classList.add('used');
+  document.querySelectorAll('.sort-item').forEach(x => x.style.borderColor = '');
+
+  const placed = document.createElement('div');
+  placed.className = 'placed-item';
+  placed.textContent = item.text + (item.bucket === bucketIdx ? ' ✅' : ' ❌');
+  if (item.bucket !== bucketIdx) placed.style.color = '#fca5a5';
+  document.getElementById(bucketIdx === 0 ? 'bucketA' : 'bucketB').appendChild(placed);
+
+  if (item.bucket === bucketIdx) {
+    missionScore += 5; totalScore += 5; updateScore(); showToast('+5 ✨');
+  }
+
+  sortState.selected = null;
+  document.getElementById('feedback').className = 'feedback-box';
+
+  // check if all placed
+  const allUsed = sortState.q.items.every((_,idx) => document.getElementById('si'+idx).classList.contains('used'));
+  if (allUsed) {
+    pendingAnswer = true;
+    setTimeout(() => {
+      showFeedback(true, sortState.q.exp);
+      document.getElementById('next-btn').classList.add('show');
+    }, 400);
+  }
+}
+
+// ===== ORDER =====
+function renderOrder(q, area) {
+  const shuffled = [...q.items].sort(() => Math.random() - 0.5);
+  orderState = {
+    q: q,
+    items: shuffled,
+    selected: [],
+    done: false
+  };
+
+  area.innerHTML = `
+    <div class="q-card">
+      <div class="q-text">${q.q}</div>
+      <div class="order-items" id="order-items">
+        ${shuffled.map((item,i) => `
+          <div class="order-item" id="oi${i}" onclick="selectOrderItem(${i})">
+            <div class="order-num" id="on${i}">-</div>
+            <div>${item}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>
+  `;
+}
+
+function selectOrderItem(i) {
+  if (orderState.done) return;
+  const el = document.getElementById('oi' + i);
+  const num = document.getElementById('on' + i);
+
+  if (orderState.selected.includes(i)) {
+    // deselect last
+    const idx = orderState.selected.indexOf(i);
+    if (idx === orderState.selected.length - 1) {
+      orderState.selected.pop();
+      num.textContent = '-';
+      num.className = 'order-num';
+      el.classList.remove('selected');
+    }
+    return;
+  }
+
+  const rank = orderState.selected.length + 1;
+  orderState.selected.push(i);
+  num.textContent = rank;
+  num.classList.add('filled');
+  el.classList.add('selected');
+
+  if (orderState.selected.length === orderState.items.length) {
+    // check
+    orderState.done = true;
+    pendingAnswer = true;
+    let correct = 0;
+    orderState.selected.forEach((itemIdx, rank) => {
+      const actualItem = orderState.items[itemIdx];
+      const expectedItem = orderState.q.items[rank];
+      const on = document.getElementById('on' + itemIdx);
+      if (actualItem === expectedItem) {
+        on.className = 'order-num correct-o';
+        correct++;
+      } else {
+        on.className = 'order-num wrong-o';
+      }
+    });
+    const pts = correct >= 4 ? 15 : correct >= 3 ? 10 : correct >= 2 ? 5 : 0;
+    missionScore += pts; totalScore += pts; updateScore();
+    if (pts > 0) showToast('+' + pts + ' ✨');
+    showFeedback(correct === orderState.q.items.length, orderState.q.exp);
+    document.getElementById('next-btn').classList.add('show');
+  }
+}
+
+// ===== FEEDBACK =====
+function showFeedback(ok, exp) {
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback-box show ' + (ok ? 'ok' : 'fail');
+  fb.style.background = '';
+  fb.style.border = '';
+  fb.innerHTML = `
+    <div class="feedback-emoji">${ok ? '🎉' : '💡'}</div>
+    <strong>${ok ? 'כל הכבוד!' : 'לא מדויק...'}</strong><br>
+    ${exp}
+  `;
+}
+
+// ===== NEXT QUESTION =====
+function nextQuestion() {
+  currentQ++;
+  pendingAnswer = false;
+  document.getElementById('next-btn').classList.remove('show');
+
+  if (currentQ >= currentMission.questions.length) {
+    endMission();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ===== END MISSION =====
+function endMission() {
+  stopTimer();
+  if (!missionDone.includes(currentMission.id)) {
+    missionDone.push(currentMission.id);
+  }
+  missionScores[currentMission.id] = missionScore;
+
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('mission-end').style.display = 'block';
+
+  const pct = missionScore / (currentMission.questions.length * 10);
+  let emoji = '😕', title = 'אפשר טוב יותר!';
+  if (pct >= 0.9) { emoji = '🏆'; title = 'מדהים!!! מושלם!'; }
+  else if (pct >= 0.7) { emoji = '🌟'; title = 'כל הכבוד! עוד קצת!'; }
+  else if (pct >= 0.5) { emoji = '😊'; title = 'לא רע! כדאי לחזור'; }
+
+  document.getElementById('me-emoji').textContent = emoji;
+  document.getElementById('me-title').textContent = title;
+  document.getElementById('me-score').textContent = missionScore + ' נקודות';
+  document.getElementById('me-lesson').innerHTML = '<div class="lesson-title">📚 מה למדנו:</div>' + currentMission.lesson;
+}
+
+// ===== END SCREEN =====
+function showEndScreen() {
+  document.getElementById('home-screen').style.display = 'none';
+  document.getElementById('end-screen').style.display = 'block';
+  document.getElementById('final-score').textContent = totalScore;
+
+  const pct = totalScore / (MISSIONS.reduce((a,m) => a + m.questions.length * 10, 0));
+  let stars = '⭐', rank = 'ממשיכה ללמוד 📖';
+  if (pct >= 0.9) { stars = '⭐⭐⭐'; rank = 'מלכת התנ"ך 👑'; }
+  else if (pct >= 0.7) { stars = '⭐⭐'; rank = 'מאיה החכמה 🌟'; }
+  else if (pct >= 0.5) { stars = '⭐'; rank = 'כמעט שם! 💪'; }
+
+  document.getElementById('stars-row').textContent = stars;
+  document.getElementById('rank-badge').textContent = rank;
+
+  let breakdown = '';
+  MISSIONS.forEach(m => {
+    const sc = missionScores[m.id] ?? 0;
+    breakdown += `<div class="score-row"><span>${m.icon} ${m.title}</span><span class="pts">${sc}</span></div>`;
+  });
+  document.getElementById('score-breakdown').innerHTML = breakdown;
+}
+
+// ===== UTILS =====
+function updateScore() {
+  document.getElementById('score-display').textContent = totalScore;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+function fullRestart() {
+  totalScore = 0;
+  missionDone = [];
+  missionScores = {};
+  currentMission = null;
+  currentQ = 0;
+  updateScore();
+  document.getElementById('end-screen').style.display = 'none';
+  renderHome();
+}
+
+// ===== INIT =====
+calcDaysLeft();
+renderHome();
+</script>
+</body>
+</html>
