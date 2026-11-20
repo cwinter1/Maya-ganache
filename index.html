@@ -640,6 +640,27 @@
     margin-bottom: 4px;
     text-align: center;
   }
+
+  .success-gif {
+    display: none;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 14px;
+    border-radius: var(--radius);
+    border: 2px solid var(--gold);
+    box-shadow: 0 4px 24px rgba(245,158,11,0.35);
+  }
+
+  #sound-btn {
+    background: rgba(124,58,237,0.3);
+    border: 1px solid var(--accent1);
+    border-radius: 50%;
+    width: 34px; height: 34px;
+    font-size: 16px;
+    color: var(--text);
+    cursor: pointer;
+    line-height: 1;
+  }
 </style>
 </head>
 <body>
@@ -653,8 +674,9 @@
   <div id="timer">00:00</div>
   <div class="hud-score">
     <span class="icon">📚</span>
-    <span style="font-size:13px;color:var(--muted)" id="mission-counter">0/5</span>
+    <span style="font-size:13px;color:var(--muted)" id="mission-counter">0/8</span>
   </div>
+  <button id="sound-btn" onclick="toggleSound()" aria-label="צליל">🔊</button>
 </div>
 
 <div id="app">
@@ -693,12 +715,14 @@
     <span class="mission-result-emoji" id="me-emoji">🎉</span>
     <div class="mission-result-title" id="me-title">-</div>
     <div class="mission-result-score" id="me-score">0 נקודות</div>
+    <img id="me-gif" class="success-gif" alt="">
     <div class="lesson-box" id="me-lesson"></div>
     <button class="next-btn show" onclick="goHome()" style="display:block">חזרה לראשי 🏠</button>
   </div>
 
   <!-- END SCREEN -->
   <div id="end-screen">
+    <img id="end-gif" class="success-gif" alt="">
     <div class="stars-row" id="stars-row">⭐⭐⭐</div>
     <div style="font-size:18px;font-weight:700;margin-bottom:4px">הסתיים! 🎓</div>
     <div class="final-score-big" id="final-score">0</div>
@@ -986,8 +1010,207 @@ const MISSIONS = [
         opts: ['בתחילתו', 'באמצעו', 'בסופו', 'אין לה מקום קבוע'], ans: 1,
         exp: 'האתנחתא מחלקת את הפסוק באמצעו.' }
     ]
+  },
+  {
+    id: 5,
+    icon: '📣',
+    title: 'נביאים אחרונים',
+    desc: 'ישעיה, ירמיה, יחזקאל ותרי-עשר',
+    color: '#8b5cf6',
+    lesson: 'נביאים אחרונים כוללים את שלושת הנביאים הגדולים – ישעיה, ירמיה ויחזקאל – ואת קובץ תרי-עשר. הם נקראים "גדולים" בגלל אורך הספרים, לא בגלל חשיבות. ישעיה ראה את "קדוש קדוש קדוש ה׳ צבאות" (פרק ו). ירמיה נבא בירושלים לפני החורבן ובזמנו. יחזקאל נבא בגלות בבל וראה את חזון העצמות היבשות (פרק ל"ז).',
+    questions: [
+      { type: 'choice', fixed: true, q: 'כמה נביאים "גדולים" יש בנביאים אחרונים?', opts: ['2', '3', '4', '12'], ans: 1,
+        exp: 'שלושה: ישעיה, ירמיה ויחזקאל. הנביאים האחרים הם בקובץ תרי-עשר.' },
+      { type: 'choice', q: 'איזה מהנביאים הבאים הוא נביא "גדול"?', opts: ['עמוס', 'ישעיה', 'מיכה', 'חגי'], ans: 1,
+        exp: 'ישעיה הוא אחד משלושת הנביאים הגדולים. עמוס, מיכה וחגי הם נביאים קטנים.' },
+      { type: 'tf', q: 'ירמיה הוא נביא קטן (בקובץ תרי-עשר)', ans: false,
+        exp: 'לא נכון! ירמיה הוא נביא גדול ויש לו ספר עצמאי.' },
+      { type: 'tf', q: 'יחזקאל נבא בגלות בבל', ans: true,
+        exp: 'נכון! יחזקאל היה בין הגולים בבבל, ושם קיבל את נבואותיו.' },
+      { type: 'choice', q: 'איזה נביא נבא בירושלים לפני חורבן בית המקדש הראשון ובזמנו?', opts: ['ירמיה', 'מלאכי', 'חגי', 'יונה'], ans: 0,
+        exp: 'ירמיה – נביא החורבן.' },
+      { type: 'choice', q: 'איזה נביא ראה את חזון העצמות היבשות?', opts: ['ישעיה', 'ירמיה', 'יחזקאל', 'עמוס'], ans: 2,
+        exp: 'יחזקאל, בפרק ל"ז – העצמות היבשות שחוזרות לחיים.' },
+      { type: 'choice', q: 'בנבואת איזה נביא מופיע "קָדוֹשׁ קָדוֹשׁ קָדוֹשׁ ה׳ צְבָאוֹת"?', opts: ['ישעיה', 'ירמיה', 'יחזקאל', 'הושע'], ans: 0,
+        exp: 'ישעיה פרק ו – חזון השרפים בהיכל.' },
+      { type: 'tf', q: 'ישעיה, ירמיה ויחזקאל שייכים לנביאים אחרונים', ans: true,
+        exp: 'נכון! נביאים אחרונים: ישעיה, ירמיה, יחזקאל ותרי-עשר.' },
+      { type: 'choice', q: 'מי הנביא הראשון בנביאים אחרונים?', opts: ['יחזקאל', 'ירמיה', 'ישעיה', 'הושע'], ans: 2,
+        exp: 'ישעיה פותח את נביאים אחרונים.' },
+      { type: 'order', q: 'סדרי את נביאים אחרונים:', items: ['ישעיה', 'ירמיה', 'יחזקאל', 'תרי-עשר'],
+        exp: 'ישעיה → ירמיה → יחזקאל → תרי-עשר' },
+      { type: 'tf', q: 'ספר דניאל שייך לחלק נביאים', ans: false,
+        exp: 'לא נכון! דניאל שייך לחלק כתובים.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים הוא "נביא אחרון"?', opts: ['יהושע', 'מלכים', 'יחזקאל', 'שופטים'], ans: 2,
+        exp: 'יחזקאל שייך לנביאים אחרונים. יהושע, שופטים ומלכים הם נביאים ראשונים.' },
+      { type: 'sort', q: 'שייכי כל ספר לקבוצה שלו:', bucketA: 'נביאים ראשונים', bucketB: 'נביאים אחרונים',
+        items: [
+          { text: 'יהושע', bucket: 0 }, { text: 'ישעיה', bucket: 1 },
+          { text: 'שופטים', bucket: 0 }, { text: 'ירמיה', bucket: 1 }
+        ],
+        exp: 'נביאים ראשונים: יהושע ושופטים. נביאים אחרונים: ישעיה וירמיה.' },
+      { type: 'tf', q: 'הושע הוא אחד משלושת הנביאים הגדולים', ans: false,
+        exp: 'לא נכון! הושע הוא נביא קטן, הראשון בתרי-עשר.' },
+      { type: 'choice', q: 'מדוע נקראים ישעיה, ירמיה ויחזקאל "נביאים גדולים"?',
+        opts: ['הספרים שלהם ארוכים יותר', 'הם חיו הרבה שנים', 'הם היו עשירים', 'הם נבאו לפני כולם'], ans: 0,
+        exp: 'הם נקראים גדולים בגלל אורך הספרים, לא בגלל שהם חשובים יותר.' }
+    ]
+  },
+  {
+    id: 6,
+    icon: '👑',
+    title: 'נביאים ראשונים – דמויות',
+    desc: 'שופטים, מלכים ונביאים בנביאים ראשונים',
+    color: '#ea580c',
+    lesson: 'בנביאים ראשונים: יהושע הוביל את כיבוש הארץ אחרי משה. בשופטים: דבורה, גדעון ושמשון. שמואל היה השופט האחרון והנביא שמשח את שאול (המלך הראשון) ואת דוד. דוד ניצח את גלית. שלמה בנה את בית המקדש הראשון. אחריו התפלגה הממלכה לשתיים. אליהו הנביא נאבק בנביאי הבעל בהר הכרמל (מלכים א׳ י"ח).',
+    questions: [
+      { type: 'choice', q: 'מי הוביל את בני ישראל לכיבוש הארץ אחרי משה?', opts: ['דוד', 'יהושע', 'שמואל', 'גדעון'], ans: 1,
+        exp: 'יהושע בן נון – ספר יהושע מספר על כיבוש הארץ.' },
+      { type: 'choice', q: 'מי היה המלך הראשון של ישראל?', opts: ['דוד', 'שאול', 'שלמה', 'שמואל'], ans: 1,
+        exp: 'שאול. אחריו מלך דוד ואחריו שלמה.' },
+      { type: 'choice', q: 'מי בנה את בית המקדש הראשון?', opts: ['דוד', 'שאול', 'שלמה', 'יהושע'], ans: 2,
+        exp: 'שלמה המלך בנה את בית המקדש בירושלים.' },
+      { type: 'choice', q: 'באיזה ספר מופיע סיפורו של שמשון?', opts: ['יהושע', 'שופטים', 'שמואל', 'מלכים'], ans: 1,
+        exp: 'שמשון הוא אחד השופטים, וסיפורו בספר שופטים.' },
+      { type: 'tf', q: 'דבורה הייתה שופטת בישראל', ans: true,
+        exp: 'נכון! דבורה הנביאה הייתה שופטת, והובילה את ישראל בניצחון על סיסרא.' },
+      { type: 'tf', q: 'דוד היה המלך הראשון של ישראל', ans: false,
+        exp: 'לא נכון! המלך הראשון היה שאול. דוד היה השני.' },
+      { type: 'choice', q: 'מי משח את שאול ואת דוד למלכים?', opts: ['נתן', 'שמואל', 'אליהו', 'יהושע'], ans: 1,
+        exp: 'שמואל הנביא משח את שניהם.' },
+      { type: 'choice', q: 'את מי ניצח דוד בקרב בעמק האלה?', opts: ['גלית', 'סיסרא', 'המן', 'פרעה'], ans: 0,
+        exp: 'דוד ניצח את גלית הפלשתי (שמואל א׳ י"ז).' },
+      { type: 'choice', q: 'איזה נביא נאבק בנביאי הבעל בהר הכרמל?', opts: ['אלישע', 'אליהו', 'שמואל', 'נתן'], ans: 1,
+        exp: 'אליהו הנביא, בימי המלך אחאב (מלכים א׳ י"ח).' },
+      { type: 'tf', q: 'אחרי שלמה התפלגה הממלכה לשתי ממלכות', ans: true,
+        exp: 'נכון! ממלכת ישראל (בצפון) וממלכת יהודה (בדרום).' },
+      { type: 'order', q: 'סדרי את שלושת המלכים הראשונים של ישראל:', items: ['שאול', 'דוד', 'שלמה'],
+        exp: 'שאול → דוד → שלמה' },
+      { type: 'sort', q: 'שייכי כל דמות לספר שלה:', bucketA: 'ספר שופטים', bucketB: 'ספר שמואל',
+        items: [
+          { text: 'דבורה', bucket: 0 }, { text: 'גדעון', bucket: 0 },
+          { text: 'דוד', bucket: 1 }, { text: 'שאול', bucket: 1 }
+        ],
+        exp: 'דבורה וגדעון היו שופטים. שאול ודוד הם דמויות מרכזיות בספר שמואל.' },
+      { type: 'choice', q: 'מי הייתה שופטת ונביאה בימי השופטים?', opts: ['דבורה', 'חנה', 'רות', 'אסתר'], ans: 0,
+        exp: 'דבורה.' },
+      { type: 'choice', q: 'איזה שופט נודע בכוחו הגדול?', opts: ['שמשון', 'גדעון', 'דבורה', 'שמואל'], ans: 0,
+        exp: 'שמשון.' },
+      { type: 'choice', q: 'מי נחשב לשופט האחרון ולנביא שהוביל למלוכה?', opts: ['שמשון', 'דבורה', 'שמואל', 'גדעון'], ans: 2,
+        exp: 'שמואל – השופט האחרון, שמשח את שאול למלך.' },
+      { type: 'tf', q: 'ספר יהושע מספר על כיבוש ארץ כנען', ans: true,
+        exp: 'נכון! יהושע מוביל את בני ישראל בכיבוש הארץ ובחלוקתה לשבטים.' }
+    ]
+  },
+  {
+    id: 7,
+    icon: '📚',
+    title: 'ספרי הכתובים',
+    desc: 'תהילים, משלי, איוב, דניאל ועוד',
+    color: '#0d9488',
+    lesson: 'הכתובים הם החלק השלישי בתנ"ך. הם כוללים: תהילים (שירי תפילה ושבח, מיוחסים לדוד), משלי (פתגמי חכמה, מיוחס לשלמה), איוב (שאלת הצדיק הסובל), חמש המגילות, דניאל (חלקו בארמית, בגלות בבל), עזרא ונחמיה (שיבת ציון) ודברי הימים (האחרון בתנ"ך).',
+    questions: [
+      { type: 'choice', q: 'איזה ספר שייך לחלק "כתובים"?', opts: ['שמואל', 'תהילים', 'ישעיה', 'מלכים'], ans: 1,
+        exp: 'תהילים שייך לכתובים.' },
+      { type: 'choice', q: 'איזה ספר מורכב בעיקר משירי תפילה ושבח?', opts: ['תהילים', 'משלי', 'איוב', 'דניאל'], ans: 0,
+        exp: 'תהילים – ספר השירים והתפילות.' },
+      { type: 'choice', q: 'באיזה ספר מופיע "שְׁמַע בְּנִי מוּסַר אָבִיךָ"?', opts: ['תהילים', 'משלי', 'איוב', 'רות'], ans: 1,
+        exp: 'משלי – ספר פתגמי החכמה.' },
+      { type: 'choice', q: 'איזה ספר עוסק בשאלה "למה צדיק סובל?"', opts: ['איוב', 'משלי', 'תהילים', 'אסתר'], ans: 0,
+        exp: 'איוב – האדם הצדיק שעובר ייסורים.' },
+      { type: 'tf', q: 'ספר דניאל שייך לחלק נביאים', ans: false,
+        exp: 'לא נכון! דניאל שייך לכתובים.' },
+      { type: 'tf', q: 'דברי הימים הוא ספר בחלק הכתובים', ans: true,
+        exp: 'נכון! דברי הימים הוא הספר האחרון בתנ"ך.' },
+      { type: 'choice', q: 'מהו הספר האחרון בתנ"ך?', opts: ['מלאכי', 'דברי הימים', 'אסתר', 'עזרא'], ans: 1,
+        exp: 'דברי הימים סוגר את התנ"ך.' },
+      { type: 'tf', q: 'ספרי עזרא ונחמיה מספרים על שיבת ציון מבבל', ans: true,
+        exp: 'נכון! הם מספרים על החזרה מהגלות ועל בניין ירושלים והמקדש.' },
+      { type: 'choice', q: 'איזה ספר מיוחס למלך שלמה?', opts: ['משלי', 'איוב', 'דניאל', 'עזרא'], ans: 0,
+        exp: 'משלי מיוחס לשלמה, המלך החכם.' },
+      { type: 'choice', q: 'איזה ספר מיוחס למלך דוד?', opts: ['משלי', 'תהילים', 'קהלת', 'רות'], ans: 1,
+        exp: 'תהילים – "מזמור לדוד".' },
+      { type: 'tf', q: 'חמש המגילות שייכות לחלק הכתובים', ans: true,
+        exp: 'נכון! שיר השירים, רות, איכה, קהלת ואסתר הן בכתובים.' },
+      { type: 'sort', q: 'שייכי כל ספר לחלק שלו:', bucketA: 'נביאים', bucketB: 'כתובים',
+        items: [
+          { text: 'ירמיה', bucket: 0 }, { text: 'דניאל', bucket: 1 },
+          { text: 'עמוס', bucket: 0 }, { text: 'איוב', bucket: 1 }
+        ],
+        exp: 'נביאים: ירמיה ועמוס. כתובים: דניאל ואיוב.' },
+      { type: 'choice', q: 'איזה ספר כתוב חלקו בארמית ומתרחש בגלות בבל?', opts: ['דניאל', 'תהילים', 'משלי', 'רות'], ans: 0,
+        exp: 'דניאל.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים אינו בחלק הכתובים?', opts: ['משלי', 'דניאל', 'שופטים', 'איוב'], ans: 2,
+        exp: 'שופטים שייך לנביאים ראשונים.' },
+      { type: 'tf', q: 'ספר משלי מכיל פתגמי חכמה', ans: true,
+        exp: 'נכון! משלי הוא ספר חכמה.' }
+    ]
   }
+
 ];
+
+// ===== SOUND (generated in the browser, no audio files) =====
+let audioCtx = null;
+let soundOn = true;
+try { soundOn = localStorage.getItem('maya_sound') !== 'off'; } catch (e) {}
+
+function getAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { audioCtx = new AC(); } catch (e) { return null; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone(freq, start, dur, type, vol) {
+  const ctx = getAudio();
+  if (!ctx || !soundOn) return;
+  const t0 = ctx.currentTime + start;
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.25, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start(t0);
+  o.stop(t0 + dur + 0.05);
+}
+
+const sounds = {
+  correct() { tone(660, 0, 0.15, 'sine', 0.28); tone(880, 0.1, 0.28, 'sine', 0.28); },
+  partial() { tone(520, 0, 0.18, 'triangle', 0.25); tone(620, 0.12, 0.22, 'triangle', 0.25); },
+  wrong()   { tone(220, 0, 0.22, 'sawtooth', 0.14); tone(165, 0.16, 0.32, 'sawtooth', 0.14); },
+  flip()    { tone(480, 0, 0.07, 'square', 0.08); tone(640, 0.05, 0.08, 'square', 0.08); },
+  finish()  { tone(392, 0, 0.18, 'triangle', 0.22); tone(330, 0.18, 0.3, 'triangle', 0.22); },
+  fanfare() {
+    [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.3, 'triangle', 0.28));
+    tone(1047, 0.56, 0.8, 'triangle', 0.3);
+    tone(1319, 0.56, 0.8, 'sine', 0.2);
+  }
+};
+
+function toggleSound() {
+  soundOn = !soundOn;
+  try { localStorage.setItem('maya_sound', soundOn ? 'on' : 'off'); } catch (e) {}
+  updateSoundBtn();
+  if (soundOn) sounds.correct();
+}
+
+function updateSoundBtn() {
+  document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+}
+
+// show the success gif (re-set src so the animation restarts)
+function showGif(id) {
+  const el = document.getElementById(id);
+  el.src = 'success.gif?t=' + Date.now();
+  el.style.display = 'block';
+}
 
 // ===== HELPERS =====
 function shuffle(a) {
@@ -1025,7 +1248,8 @@ function pickRound(m) {
 }
 
 // each question is worth qWeight points; a perfect play = 100
-function award(fraction) {
+function award(fraction, silent) {
+  if (!silent) sounds.correct();
   const pts = fraction * qWeight;
   missionScore += pts;
   totalScore += pts;
@@ -1165,7 +1389,7 @@ function answerChoice(picked) {
     if (i === picked && picked !== correct) b.classList.add('wrong');
   });
   const ok = picked === correct;
-  if (ok) award(1);
+  if (ok) award(1); else sounds.wrong();
   showFeedback(ok, currentQuestion.exp);
   document.getElementById('next-btn').classList.add('show');
 }
@@ -1190,7 +1414,7 @@ function answerTF(picked) {
   pendingAnswer = true;
   document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
   const ok = (picked === currentQuestion.ans);
-  if (ok) award(1);
+  if (ok) award(1); else sounds.wrong();
   showFeedback(ok, currentQuestion.exp);
   document.getElementById('next-btn').classList.add('show');
 }
@@ -1218,6 +1442,7 @@ function renderFlip(q, area) {
 function flipCard(i) {
   const el = document.getElementById('fc'+i);
   el.classList.toggle('flipped');
+  sounds.flip();
 }
 
 // ===== SORT =====
@@ -1292,6 +1517,8 @@ function placeSortItem(bucketIdx) {
   if (item.bucket === bucketIdx) {
     sortState.correct++;
     award(1 / n);
+  } else {
+    sounds.wrong();
   }
 
   sortState.selected = null;
@@ -1367,7 +1594,10 @@ function selectOrderItem(i) {
         on.className = 'order-num wrong-o';
       }
     });
-    award(correct / orderState.q.items.length);
+    award(correct / orderState.q.items.length, true);
+    if (correct === orderState.q.items.length) sounds.correct();
+    else if (correct > 0) sounds.partial();
+    else sounds.wrong();
     showFeedback(correct === orderState.q.items.length, orderState.q.exp);
     document.getElementById('next-btn').classList.add('show');
   }
@@ -1420,6 +1650,9 @@ function endMission() {
   document.getElementById('me-emoji').textContent = emoji;
   document.getElementById('me-title').textContent = title;
   document.getElementById('me-score').textContent = shown + ' / ' + MAX_PER_MISSION + ' נקודות';
+  const gif = document.getElementById('me-gif');
+  gif.style.display = 'none';
+  if (pct >= 0.7) { showGif('me-gif'); sounds.fanfare(); } else { sounds.finish(); }
   document.getElementById('me-lesson').innerHTML = '<div class="lesson-title">📚 מה למדנו:</div>' + currentMission.lesson;
 }
 
@@ -1429,6 +1662,8 @@ function showEndScreen() {
   document.getElementById('end-screen').style.display = 'block';
   const total = Math.round(totalScore);
   document.getElementById('final-score').textContent = total;
+  showGif('end-gif');
+  sounds.fanfare();
 
   const pct = total / (MISSIONS.length * MAX_PER_MISSION);
   let stars = '⭐', rank = 'ממשיכה ללמוד 📖';
@@ -1472,6 +1707,10 @@ function fullRestart() {
 
 // ===== INIT =====
 calcDaysLeft();
+updateSoundBtn();
+// unlock audio on the first touch/click (browsers block sound until then) and preload the gif
+['pointerdown', 'click', 'touchend'].forEach(ev => document.addEventListener(ev, getAudio, { once: true }));
+new Image().src = 'success.gif';
 renderHome();
 </script>
 </body>
