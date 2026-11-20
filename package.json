@@ -1,0 +1,11 @@
+{
+  "name": "maya-ganache",
+  "private": true,
+  "description": "Maya's Tanakh exam prep game",
+  "scripts": {
+    "test": "node tests/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.40.0"
+  }
+}
