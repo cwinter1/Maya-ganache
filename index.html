@@ -875,15 +875,15 @@ const MISSIONS = [
       {
         type: 'sort',
         q: 'סדרי את המגילות לפי החג שלהן:',
-        bucketA: 'קוראים בחגי תשרי',
-        bucketB: 'קוראים בחגי ניסן',
+        bucketA: 'פסח או שבועות',
+        bucketB: 'סוכות או תשעה באב',
         items: [
-          { text: 'קהלת', bucket: 0 },
-          { text: 'שיר השירים', bucket: 1 },
-          { text: 'איכה', bucket: 0 },
-          { text: 'רות', bucket: 1 }
+          { text: 'קהלת', bucket: 1 },
+          { text: 'שיר השירים', bucket: 0 },
+          { text: 'איכה', bucket: 1 },
+          { text: 'רות', bucket: 0 }
         ],
-        exp: 'חגי תשרי: קהלת (סוכות), איכה (תשעה באב – לא חג אבל בחודש תשרי-ת לא, אב!). חגי ניסן: שיר השירים (פסח).\n\nהערה: רות היא שבועות (סיוון), לא ניסן ממש – אבל בהשוואה לתשרי היא קרובה יותר לפסח.'
+        exp: 'שיר השירים – פסח, רות – שבועות. קהלת – סוכות, איכה – תשעה באב.'
       }
     ]
   },
@@ -1072,6 +1072,12 @@ function goHome() { renderHome(); }
 // ===== START MISSION =====
 function startMission(id) {
   currentMission = MISSIONS.find(m => m.id === id);
+  // replaying a mission: remove its old score so the total isn't double counted
+  if (missionScores[id] !== undefined) {
+    totalScore -= missionScores[id];
+    delete missionScores[id];
+    updateScore();
+  }
   currentQ = 0;
   missionScore = 0;
   pendingAnswer = false;
@@ -1193,7 +1199,8 @@ function renderSort(q, area) {
   sortState = {
     q: q,
     placedA: [],
-    placedB: []
+    placedB: [],
+    correct: 0
   };
 
   area.innerHTML = `
@@ -1262,8 +1269,13 @@ function placeSortItem(bucketIdx) {
   if (item.bucket !== bucketIdx) placed.style.color = '#fca5a5';
   document.getElementById(bucketIdx === 0 ? 'bucketA' : 'bucketB').appendChild(placed);
 
+  // whole sort question is worth max 10 points, split across items (rounded cumulatively)
   if (item.bucket === bucketIdx) {
-    missionScore += 5; totalScore += 5; updateScore(); showToast('+5 ✨');
+    const n = sortState.q.items.length;
+    const before = Math.round(10 * sortState.correct / n);
+    sortState.correct++;
+    const delta = Math.round(10 * sortState.correct / n) - before;
+    if (delta > 0) { missionScore += delta; totalScore += delta; updateScore(); showToast('+' + delta + ' ✨'); }
   }
 
   sortState.selected = null;
@@ -1345,7 +1357,8 @@ function selectOrderItem(i) {
         on.className = 'order-num wrong-o';
       }
     });
-    const pts = correct >= 4 ? 15 : correct >= 3 ? 10 : correct >= 2 ? 5 : 0;
+    // max 10 points per question, like every other question type
+    const pts = Math.round(10 * correct / orderState.q.items.length);
     missionScore += pts; totalScore += pts; updateScore();
     if (pts > 0) showToast('+' + pts + ' ✨');
     showFeedback(correct === orderState.q.items.length, orderState.q.exp);
