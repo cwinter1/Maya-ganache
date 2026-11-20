@@ -718,18 +718,24 @@ let totalScore = 0;
 let timerInterval = null;
 let timerSecs = 0;
 let currentMission = null;
+let currentRound = [];      // the questions picked for the current play
+let currentQuestion = null; // data for the question on screen
 let currentQ = 0;
 let missionScore = 0;
 let missionDone = [];
 let missionScores = {};
 let pendingAnswer = false;
+let qWeight = 0;
+
+const ROUND_SIZE = 6;       // questions per play
+const MAX_PER_MISSION = 100; // perfect play = 100 points
 
 // sort state
 let sortState = {};
 // order state
 let orderState = {};
 
-// ===== MISSIONS =====
+// ===== MISSIONS (each has a pool; every play draws ROUND_SIZE questions) =====
 const MISSIONS = [
   {
     id: 0,
@@ -737,47 +743,47 @@ const MISSIONS = [
     title: 'חלקי התנ"ך',
     desc: 'סדר הספרים, חלוקה לחלקים',
     color: '#7c3aed',
-    lesson: 'התנ"ך מחולק ל-3 חלקים: תורה (5 ספרים), נביאים (21 ספרים), כתובים (13 ספרים). סדר ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים. סדר נביאים ראשונים: יהושע, שופטים, שמואל, מלכים.',
+    lesson: 'התנ"ך מחולק ל-3 חלקים: תורה (5 ספרים), נביאים (21 ספרים) וכתובים (13 ספרים) – ביחד 39 ספרים (ובספירה שבה שמואל, מלכים ותרי-עשר הם ספר אחד: 24 ספרים). סדר ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים. סדר נביאים ראשונים: יהושע, שופטים, שמואל, מלכים.',
     questions: [
-      {
-        type: 'choice',
-        q: 'לכמה חלקים מחולק התנ"ך?',
-        opts: ['2', '3', '4', '5'],
-        ans: 1,
-        exp: 'התנ"ך מחולק ל-3 חלקים: תורה, נביאים וכתובים – ת-נ-ך!'
-      },
-      {
-        type: 'order',
-        q: 'סדרי את ספרי התורה בסדר הנכון:',
-        items: ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'],
-        exp: 'סדר ספרי התורה: בראשית → שמות → ויקרא → במדבר → דברים'
-      },
-      {
-        type: 'choice',
-        q: 'כמה ספרים יש בתורה?',
-        opts: ['3', '4', '5', '6'],
-        ans: 2,
-        exp: '5 ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים'
-      },
-      {
-        type: 'tf',
-        q: 'ספר תהילים שייך לחלק "נביאים"',
-        ans: false,
-        exp: 'לא נכון! תהילים שייך לחלק "כתובים". נביאים כולל: יהושע, שופטים, שמואל, מלכים, ישעיה, ירמיה...'
-      },
-      {
-        type: 'choice',
-        q: 'מה סדר החלקים הנכון של התנ"ך?',
-        opts: ['נביאים, תורה, כתובים', 'תורה, כתובים, נביאים', 'תורה, נביאים, כתובים', 'כתובים, נביאים, תורה'],
-        ans: 2,
-        exp: 'ת-נ-ך: תורה → נביאים → כתובים. זה גם ראשי התיבות!'
-      },
-      {
-        type: 'tf',
-        q: 'ספר יהושע שייך לנביאים ראשונים',
-        ans: true,
-        exp: 'נכון! נביאים ראשונים: יהושע, שופטים, שמואל א׳-ב׳, מלכים א׳-ב׳'
-      }
+      { type: 'choice', fixed: true, q: 'לכמה חלקים מחולק התנ"ך?', opts: ['2', '3', '4', '5'], ans: 1,
+        exp: 'התנ"ך מחולק ל-3 חלקים: תורה, נביאים וכתובים – ת-נ-ך!' },
+      { type: 'order', q: 'סדרי את ספרי התורה בסדר הנכון:', items: ['בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים'],
+        exp: 'סדר ספרי התורה: בראשית → שמות → ויקרא → במדבר → דברים' },
+      { type: 'choice', fixed: true, q: 'כמה ספרים יש בתורה?', opts: ['3', '4', '5', '6'], ans: 2,
+        exp: '5 ספרי התורה: בראשית, שמות, ויקרא, במדבר, דברים' },
+      { type: 'tf', q: 'ספר תהילים שייך לחלק "נביאים"', ans: false,
+        exp: 'לא נכון! תהילים שייך לחלק "כתובים". נביאים כולל: יהושע, שופטים, שמואל, מלכים, ישעיה, ירמיה...' },
+      { type: 'choice', q: 'מה סדר החלקים הנכון של התנ"ך?',
+        opts: ['נביאים, תורה, כתובים', 'תורה, כתובים, נביאים', 'תורה, נביאים, כתובים', 'כתובים, נביאים, תורה'], ans: 2,
+        exp: 'ת-נ-ך: תורה → נביאים → כתובים. זה גם ראשי התיבות!' },
+      { type: 'tf', q: 'ספר יהושע שייך לנביאים ראשונים', ans: true,
+        exp: 'נכון! נביאים ראשונים: יהושע, שופטים, שמואל א׳-ב׳, מלכים א׳-ב׳' },
+      { type: 'choice', q: 'איזה ספר פותח את התנ"ך?', opts: ['שמות', 'בראשית', 'יהושע', 'תהילים'], ans: 1,
+        exp: 'בראשית הוא הספר הראשון בתורה ובכל התנ"ך.' },
+      { type: 'choice', q: 'איזה ספר סוגר את חמשת ספרי התורה?', opts: ['ויקרא', 'במדבר', 'דברים', 'שמות'], ans: 2,
+        exp: 'דברים הוא הספר החמישי והאחרון בתורה.' },
+      { type: 'choice', q: 'מהו הספר השלישי בתורה?', opts: ['שמות', 'ויקרא', 'במדבר', 'דברים'], ans: 1,
+        exp: 'בראשית, שמות, ויקרא – ויקרא הוא הספר השלישי.' },
+      { type: 'tf', q: 'ספר שמות הוא הספר השלישי בתורה', ans: false,
+        exp: 'לא נכון! שמות הוא הספר השני. השלישי הוא ויקרא.' },
+      { type: 'tf', q: 'ספר דברים הוא הספר האחרון בתורה', ans: true,
+        exp: 'נכון! דברים סוגר את חמשת חומשי התורה.' },
+      { type: 'tf', q: 'ספר שופטים שייך לחלק "תורה"', ans: false,
+        exp: 'לא נכון! שופטים שייך לנביאים (נביאים ראשונים). התורה כוללת רק 5 ספרים: בראשית עד דברים.' },
+      { type: 'tf', q: 'ספר רות שייך לחלק "כתובים"', ans: true,
+        exp: 'נכון! רות היא אחת מחמש המגילות, והמגילות שייכות לכתובים.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים שייך לחלק "כתובים"?', opts: ['שופטים', 'תהילים', 'ישעיה', 'דברים'], ans: 1,
+        exp: 'תהילים שייך לכתובים. שופטים וישעיה בנביאים, ודברים בתורה.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים שייך לחלק "נביאים"?', opts: ['משלי', 'איוב', 'ירמיה', 'רות'], ans: 2,
+        exp: 'ירמיה הוא נביא גדול ולכן שייך לנביאים. משלי, איוב ורות שייכים לכתובים.' },
+      { type: 'order', q: 'סדרי את ספרי נביאים ראשונים:', items: ['יהושע', 'שופטים', 'שמואל', 'מלכים'],
+        exp: 'נביאים ראשונים לפי הסדר: יהושע → שופטים → שמואל → מלכים' },
+      { type: 'sort', q: 'שייכי כל ספר לחלק שלו:', bucketA: 'תורה', bucketB: 'כתובים',
+        items: [
+          { text: 'בראשית', bucket: 0 }, { text: 'תהילים', bucket: 1 },
+          { text: 'דברים', bucket: 0 }, { text: 'משלי', bucket: 1 }
+        ],
+        exp: 'תורה: בראשית ודברים. כתובים: תהילים ומשלי.' }
     ]
   },
   {
@@ -786,48 +792,46 @@ const MISSIONS = [
     title: 'קובץ תרי-עשר',
     desc: 'שנים עשר הנביאים הקטנים',
     color: '#0891b2',
-    lesson: 'תרי-עשר = ארמית ל"שנים עשר". הנביאים הקטנים הם: הושע, יואל, עמוס, עובדיה, יונה, מיכה, נחום, חבקוק, צפניה, חגי, זכריה, מלאכי. הסדר: מהקדום לאחרון (עמוס הקדום ביותר, מלאכי האחרון).',
+    lesson: 'תרי-עשר = ארמית ל"שנים עשר". הנביאים הקטנים הם, לפי הסדר: הושע, יואל, עמוס, עובדיה, יונה, מיכה, נחום, חבקוק, צפניה, חגי, זכריה, מלאכי. הסדר הוא בערך לפי זמן הנבואה, אבל לא בדיוק (למשל עמוס חי לפני הושע). הושע הראשון ומלאכי האחרון.',
     questions: [
-      {
-        type: 'choice',
-        q: 'מה פירוש "תרי-עשר"?',
-        opts: ['שלושה עשר', 'שנים עשר', 'אחד עשר', 'עשרה'],
-        ans: 1,
-        exp: 'תרי-עשר זה ארמית לשנים עשר! כך קוראים לאוסף שנים-עשר הנביאים הקטנים.'
-      },
-      {
-        type: 'choice',
-        q: 'כמה ספרי נביאים יש בקובץ תרי-עשר?',
-        opts: ['10', '11', '12', '13'],
-        ans: 2,
-        exp: '12 נביאים קטנים מהושע ועד מלאכי'
-      },
-      {
-        type: 'tf',
-        q: 'ספר יונה הוא חלק מקובץ תרי-עשר',
-        ans: true,
-        exp: 'נכון! יונה הוא אחד מ-12 הנביאים הקטנים. הסיפור על הדג הגדול!'
-      },
-      {
-        type: 'choice',
-        q: 'מי הנביא הראשון בקובץ תרי-עשר?',
-        opts: ['עמוס', 'הושע', 'יואל', 'מיכה'],
-        ans: 1,
-        exp: 'הושע הוא הראשון בסדר קובץ תרי-עשר, אם כי עמוס חי קודמו'
-      },
-      {
-        type: 'choice',
-        q: 'מי הנביא האחרון בתרי-עשר (ואחרון בנביאים בכלל)?',
-        opts: ['זכריה', 'חגי', 'מלאכי', 'עובדיה'],
-        ans: 2,
-        exp: 'מלאכי הוא הנביא האחרון בתרי-עשר ובנביאים כולם. לאחריו אין נבואה!'
-      },
-      {
-        type: 'tf',
-        q: 'ספר ישעיה שייך לקובץ תרי-עשר',
-        ans: false,
-        exp: 'לא נכון! ישעיה הוא נביא גדול – ספר עצמאי בנביאים אחרונים. תרי-עשר זה רק הנביאים הקטנים.'
-      }
+      { type: 'choice', fixed: true, q: 'מה פירוש "תרי-עשר"?', opts: ['שלושה עשר', 'שנים עשר', 'אחד עשר', 'עשרה'], ans: 1,
+        exp: 'תרי-עשר זה ארמית לשנים עשר! כך קוראים לאוסף שנים-עשר הנביאים הקטנים.' },
+      { type: 'choice', fixed: true, q: 'כמה ספרי נביאים יש בקובץ תרי-עשר?', opts: ['10', '11', '12', '13'], ans: 2,
+        exp: '12 נביאים קטנים מהושע ועד מלאכי' },
+      { type: 'tf', q: 'ספר יונה הוא חלק מקובץ תרי-עשר', ans: true,
+        exp: 'נכון! יונה הוא אחד מ-12 הנביאים הקטנים. הסיפור על הדג הגדול!' },
+      { type: 'choice', q: 'מי הנביא הראשון בקובץ תרי-עשר?', opts: ['עמוס', 'הושע', 'יואל', 'מיכה'], ans: 1,
+        exp: 'הושע הוא הראשון בסדר קובץ תרי-עשר, אם כי עמוס חי לפניו.' },
+      { type: 'choice', q: 'מי הנביא האחרון בתרי-עשר (ואחרון בנביאים בכלל)?', opts: ['זכריה', 'חגי', 'מלאכי', 'עובדיה'], ans: 2,
+        exp: 'מלאכי הוא הנביא האחרון בתרי-עשר ובנביאים כולם.' },
+      { type: 'tf', q: 'ספר ישעיה שייך לקובץ תרי-עשר', ans: false,
+        exp: 'לא נכון! ישעיה הוא נביא גדול – ספר עצמאי בנביאים אחרונים. תרי-עשר זה רק הנביאים הקטנים.' },
+      { type: 'choice', q: 'איזה נביא קשור לסיפור הדג הגדול?', opts: ['יונה', 'עמוס', 'מיכה', 'נחום'], ans: 0,
+        exp: 'יונה! הוא ברח מהשליחות לנינוה ונבלע בדג גדול.' },
+      { type: 'choice', q: 'איזה ספר בתרי-עשר הוא הקצר ביותר (פרק אחד בלבד)?', opts: ['יונה', 'חגי', 'עובדיה', 'מלאכי'], ans: 2,
+        exp: 'עובדיה! ספר בן פרק אחד – הקצר ביותר בתנ"ך.' },
+      { type: 'tf', q: 'מלאכי הוא הנביא הראשון בתרי-עשר', ans: false,
+        exp: 'לא נכון! מלאכי הוא האחרון. הראשון הוא הושע.' },
+      { type: 'tf', q: 'הושע הוא הספר הראשון בתרי-עשר', ans: true,
+        exp: 'נכון! תרי-עשר נפתח בהושע ונסגר במלאכי.' },
+      { type: 'tf', q: 'ספר יחזקאל שייך לקובץ תרי-עשר', ans: false,
+        exp: 'לא נכון! יחזקאל הוא אחד משלושת הנביאים הגדולים (ישעיה, ירמיה, יחזקאל).' },
+      { type: 'choice', q: 'איזה ספר מופיע אחרי ספר יונה בתרי-עשר?', opts: ['עובדיה', 'מיכה', 'נחום', 'חגי'], ans: 1,
+        exp: 'הסדר: ... עובדיה, יונה, מיכה, נחום ... – אחרי יונה בא מיכה.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים אינו בקובץ תרי-עשר?', opts: ['מיכה', 'ירמיה', 'נחום', 'חבקוק'], ans: 1,
+        exp: 'ירמיה הוא נביא גדול, לא נביא קטן.' },
+      { type: 'choice', q: 'איזה מהספרים הבאים שייך לקובץ תרי-עשר?', opts: ['יחזקאל', 'דניאל', 'עמוס', 'ישעיה'], ans: 2,
+        exp: 'עמוס הוא נביא קטן. דניאל שייך לכתובים, ויחזקאל וישעיה הם נביאים גדולים.' },
+      { type: 'order', q: 'סדרי את חמשת הנביאים הראשונים בתרי-עשר:', items: ['הושע', 'יואל', 'עמוס', 'עובדיה', 'יונה'],
+        exp: 'הושע → יואל → עמוס → עובדיה → יונה' },
+      { type: 'order', q: 'סדרי את חמשת הנביאים האחרונים בתרי-עשר:', items: ['חבקוק', 'צפניה', 'חגי', 'זכריה', 'מלאכי'],
+        exp: 'חבקוק → צפניה → חגי → זכריה → מלאכי' },
+      { type: 'sort', q: 'מי שייך לתרי-עשר ומי לא?', bucketA: 'בתרי-עשר', bucketB: 'לא בתרי-עשר',
+        items: [
+          { text: 'יואל', bucket: 0 }, { text: 'ישעיה', bucket: 1 },
+          { text: 'צפניה', bucket: 0 }, { text: 'ירמיה', bucket: 1 }
+        ],
+        exp: 'יואל וצפניה הם נביאים קטנים. ישעיה, ירמיה ויחזקאל הם נביאים גדולים.' }
     ]
   },
   {
@@ -836,55 +840,46 @@ const MISSIONS = [
     title: 'מגילות ומועדים',
     desc: 'איזו מגילה קוראים בכל חג?',
     color: '#db2777',
-    lesson: 'חמש מגילות: שיר השירים (פסח), רות (שבועות), איכה (תשעה באב), קהלת (סוכות), אסתר (פורים). סימן: פ-ש-א-ק-פ → פסח, שבועות, אב, קהלת/סוכות, פורים.',
+    lesson: 'חמש מגילות: שיר השירים (פסח), רות (שבועות), איכה (תשעה באב), קהלת (סוכות), אסתר (פורים). סימן: פסח–שיר השירים, שבועות–רות, תשעה באב–איכה, סוכות–קהלת, פורים–אסתר.',
     questions: [
-      {
-        type: 'choice',
-        q: 'איזו מגילה קוראים בחג הפסח?',
-        opts: ['רות', 'שיר השירים', 'אסתר', 'קהלת'],
-        ans: 1,
-        exp: 'שיר השירים – קוראים בפסח! סיפור האהבה מייצג את האהבה בין עם ישראל לה׳ בזמן יציאת מצרים.'
-      },
-      {
-        type: 'choice',
-        q: 'איזו מגילה קוראים בחג שבועות?',
-        opts: ['אסתר', 'איכה', 'רות', 'שיר השירים'],
-        ans: 2,
-        exp: 'ספר רות! קוראים בשבועות כי המעשה מתרחש בזמן קציר החיטים, ורות מגיעה לעם ישראל – כמו שאנחנו קיבלנו תורה.'
-      },
-      {
-        type: 'tf',
-        q: 'מגילת איכה קוראים בתשעה באב',
-        ans: true,
-        exp: 'נכון! איכה – קינה על חורבן ירושלים. קוראים בתשעה באב, יום האבל הלאומי.'
-      },
-      {
-        type: 'choice',
-        q: 'איזו מגילה קוראים בפורים?',
-        opts: ['רות', 'קהלת', 'אסתר', 'יונה'],
-        ans: 2,
-        exp: 'מגילת אסתר! כולם יודעים – המגילה על המן ואסתר ומרדכי.'
-      },
-      {
-        type: 'choice',
-        q: 'איזו מגילה קוראים בחג הסוכות?',
-        opts: ['קהלת', 'שיר השירים', 'רות', 'איכה'],
-        ans: 0,
-        exp: 'קהלת! "הבל הבלים" – הרהורים על חיי עולם ומוות, מתאים לסוכות שהוא זמן שמחה אבל גם הרהור.'
-      },
-      {
-        type: 'sort',
-        q: 'סדרי את המגילות לפי החג שלהן:',
-        bucketA: 'פסח או שבועות',
-        bucketB: 'סוכות או תשעה באב',
+      { type: 'choice', q: 'איזו מגילה קוראים בחג הפסח?', opts: ['רות', 'שיר השירים', 'אסתר', 'קהלת'], ans: 1,
+        exp: 'שיר השירים – קוראים בפסח! סיפור האהבה מייצג את האהבה בין עם ישראל לה׳ בזמן יציאת מצרים.' },
+      { type: 'choice', q: 'איזו מגילה קוראים בחג שבועות?', opts: ['אסתר', 'איכה', 'רות', 'שיר השירים'], ans: 2,
+        exp: 'ספר רות! קוראים בשבועות כי המעשה מתרחש בזמן קציר החיטים, ורות מקבלת על עצמה את דרך עם ישראל – כמו שקיבלנו תורה.' },
+      { type: 'tf', q: 'מגילת איכה קוראים בתשעה באב', ans: true,
+        exp: 'נכון! איכה – קינה על חורבן ירושלים. קוראים בתשעה באב, יום האבל הלאומי.' },
+      { type: 'choice', q: 'איזו מגילה קוראים בפורים?', opts: ['רות', 'קהלת', 'אסתר', 'יונה'], ans: 2,
+        exp: 'מגילת אסתר! המגילה על המן, אסתר ומרדכי.' },
+      { type: 'choice', q: 'איזו מגילה קוראים בחג הסוכות?', opts: ['קהלת', 'שיר השירים', 'רות', 'איכה'], ans: 0,
+        exp: 'קהלת! "הבל הבלים" – הרהורים על החיים, מתאים לסוכות שהוא זמן שמחה אבל גם הרהור.' },
+      { type: 'sort', q: 'שייכי כל מגילה לחג שלה:', bucketA: 'פסח או שבועות', bucketB: 'סוכות או תשעה באב',
         items: [
-          { text: 'קהלת', bucket: 1 },
-          { text: 'שיר השירים', bucket: 0 },
-          { text: 'איכה', bucket: 1 },
-          { text: 'רות', bucket: 0 }
+          { text: 'קהלת', bucket: 1 }, { text: 'שיר השירים', bucket: 0 },
+          { text: 'איכה', bucket: 1 }, { text: 'רות', bucket: 0 }
         ],
-        exp: 'שיר השירים – פסח, רות – שבועות. קהלת – סוכות, איכה – תשעה באב.'
-      }
+        exp: 'שיר השירים – פסח, רות – שבועות. קהלת – סוכות, איכה – תשעה באב.' },
+      { type: 'tf', q: 'מגילת רות נקראת בפסח', ans: false,
+        exp: 'לא נכון! רות נקראת בשבועות. בפסח קוראים שיר השירים.' },
+      { type: 'tf', q: 'מגילת קהלת נקראת בסוכות', ans: true,
+        exp: 'נכון! קהלת נקראת בחג הסוכות.' },
+      { type: 'tf', q: 'שיר השירים נקרא בחג שבועות', ans: false,
+        exp: 'לא נכון! שיר השירים נקרא בפסח. בשבועות קוראים רות.' },
+      { type: 'tf', q: 'מגילת איכה היא קינה על חורבן ירושלים', ans: true,
+        exp: 'נכון! איכה מבכה את חורבן ירושלים ובית המקדש.' },
+      { type: 'choice', fixed: true, q: 'כמה מגילות יש בתנ"ך?', opts: ['3', '4', '5', '6'], ans: 2,
+        exp: '5 מגילות: שיר השירים, רות, איכה, קהלת ואסתר.' },
+      { type: 'choice', q: 'איזו מגילה קוראים בתשעה באב?', opts: ['איכה', 'רות', 'אסתר', 'קהלת'], ans: 0,
+        exp: 'איכה – קינות על החורבן.' },
+      { type: 'choice', q: 'על מה מספרת מגילת אסתר?', opts: ['הצלת היהודים מהמן בפרס', 'יציאת מצרים', 'חורבן בית המקדש', 'בניית המשכן'], ans: 0,
+        exp: 'מגילת אסתר מספרת על הצלת היהודים בפרס מתכניתו של המן.' },
+      { type: 'choice', q: 'מי חמותה של רות?', opts: ['נעמי', 'אסתר', 'שרה', 'רחל'], ans: 0,
+        exp: 'נעמי! רות הולכת איתה ליהודה ואומרת: "עַמֵּךְ עַמִּי וֵאלֹהַיִךְ אֱלֹהָי".' },
+      { type: 'sort', q: 'מי נקראת בחגי הרגלים ומי לא?', bucketA: 'בפסח, שבועות או סוכות', bucketB: 'בפורים או בתשעה באב',
+        items: [
+          { text: 'שיר השירים', bucket: 0 }, { text: 'רות', bucket: 0 },
+          { text: 'קהלת', bucket: 0 }, { text: 'אסתר', bucket: 1 }, { text: 'איכה', bucket: 1 }
+        ],
+        exp: 'שלושת הרגלים: פסח (שיר השירים), שבועות (רות), סוכות (קהלת). אסתר בפורים ואיכה בתשעה באב.' }
     ]
   },
   {
@@ -893,62 +888,58 @@ const MISSIONS = [
     title: 'התמצאות במקרא',
     desc: 'ספר, פרק, פסוק – לזהות ולמצוא',
     color: '#f59e0b',
-    lesson: 'התמצאות במקרא: כל ספר מחולק לפרקים, כל פרק לפסוקים. למשל: בראשית א:א = ספר בראשית, פרק א, פסוק א. הפסוק הראשון בתורה: "בְּרֵאשִׁית בָּרָא אֱלֹהִים". חשוב לדעת: להזיז אצבע בין ספר → פרק → פסוק.',
+    lesson: 'התמצאות במקרא: כל ספר מחולק לפרקים, וכל פרק לפסוקים. למשל: בראשית א:א = ספר בראשית, פרק א, פסוק א. הסימון נקרא ספר ← פרק ← פסוק. המספרים כתובים באותיות: א=1, ב=2, י=10, כ=20, מ=40.',
     questions: [
-      {
-        type: 'choice',
-        q: 'מה פירוש הסימון: שמות ב:י?',
-        opts: ['ספר שמות, פרק ב׳, פסוק י׳', 'ספר שמות, דף ב׳, שורה י׳', 'פרק שמות, ב׳ ספרים', 'פרק ב׳, פסוק י׳ בתורה'],
-        ans: 0,
-        exp: 'שמות ב:י = ספר שמות, פרק ב׳, פסוק י׳. זהו הפסוק על הוצאת משה מהמים!'
-      },
-      {
-        type: 'choice',
-        q: 'פסוק מופיע ב"בראשית א:א" – באיזה ספר?',
-        opts: ['שמות', 'ויקרא', 'בראשית', 'במדבר'],
-        ans: 2,
-        exp: 'בראשית! הספר הראשון בתורה. בראשית א:א = "בְּרֵאשִׁית בָּרָא אֱלֹהִים"'
-      },
-      {
-        type: 'tf',
-        q: 'בסימון "ישעיה מ:כח" – המספר "מ" הוא מספר הפסוק',
-        ans: false,
-        exp: 'לא נכון! בסימון ספר:פרק:פסוק – "מ" הוא מספר הפרק (40 בגימטריה), ו"כח" הוא הפסוק (28).'
-      },
-      {
-        type: 'choice',
-        q: 'מה הסדר הנכון לחפש פסוק ספציפי?',
-        opts: [
-          'פסוק ← פרק ← ספר',
-          'ספר ← פרק ← פסוק',
-          'פרק ← ספר ← פסוק',
-          'ספר ← פסוק ← פרק'
-        ],
-        ans: 1,
-        exp: 'ספר ← פרק ← פסוק! קודם מוצאים את הספר, אחר כך את הפרק, ורק אז את הפסוק.'
-      },
-      {
-        type: 'choice',
-        q: 'כמה ספרים יש בתורה (ומה מספרם בתנ"ך)?',
-        opts: [
-          '5 ספרים, הראשונים בתנ"ך',
-          '7 ספרים, בחלק הנביאים',
-          '5 ספרים, בחלק הכתובים',
-          '4 ספרים, בתחילת הנביאים'
-        ],
-        ans: 0,
-        exp: 'חמשת ספרי התורה הם הראשונים בתנ"ך: בראשית, שמות, ויקרא, במדבר, דברים.'
-      },
-      {
-        type: 'flipcards',
-        q: 'הכירי את הפסוקים המפורסמים – הפכי כדי לראות:',
+      { type: 'choice', q: 'מה פירוש הסימון: שמות ב:י?',
+        opts: ['ספר שמות, פרק ב׳, פסוק י׳', 'ספר שמות, דף ב׳, שורה י׳', 'פרק שמות, ב׳ ספרים', 'פרק ב׳, פסוק י׳ בתורה'], ans: 0,
+        exp: 'שמות ב:י = ספר שמות, פרק ב׳, פסוק י׳. זהו הפסוק על קריאת השם משה: "כִּי מִן הַמַּיִם מְשִׁיתִהוּ".' },
+      { type: 'choice', q: 'בסימון "בראשית א:א" – באיזה ספר נמצא הפסוק?', opts: ['שמות', 'ויקרא', 'בראשית', 'במדבר'], ans: 2,
+        exp: 'בראשית! הספר הראשון בתורה. בראשית א:א = "בְּרֵאשִׁית בָּרָא אֱלֹהִים"' },
+      { type: 'tf', q: 'בסימון "ישעיה מ:כח" – המספר "מ" הוא מספר הפסוק', ans: false,
+        exp: 'לא נכון! בסימון ספר:פרק:פסוק – "מ" הוא מספר הפרק (40), ו"כח" הוא הפסוק (28).' },
+      { type: 'choice', q: 'מה הסדר הנכון לחפש פסוק ספציפי?',
+        opts: ['פסוק ← פרק ← ספר', 'ספר ← פרק ← פסוק', 'פרק ← ספר ← פסוק', 'ספר ← פסוק ← פרק'], ans: 1,
+        exp: 'ספר ← פרק ← פסוק! קודם מוצאים את הספר, אחר כך את הפרק, ורק אז את הפסוק.' },
+      { type: 'choice', q: 'כמה ספרים יש בתורה (ומה מקומם בתנ"ך)?',
+        opts: ['5 ספרים, הראשונים בתנ"ך', '7 ספרים, בחלק הנביאים', '5 ספרים, בחלק הכתובים', '4 ספרים, בתחילת הנביאים'], ans: 0,
+        exp: 'חמשת ספרי התורה הם הראשונים בתנ"ך: בראשית, שמות, ויקרא, במדבר, דברים.' },
+      { type: 'flipcards', q: 'הכירי את הפסוקים המפורסמים – הפכי כדי לראות:',
         cards: [
           { front: '"בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ"', back: 'בראשית א:א – הפסוק הראשון בתנ"ך!' },
           { front: '"שְׁמַע יִשְׂרָאֵל ה׳ אֱלֹהֵינוּ ה׳ אֶחָד"', back: 'דברים ו:ד – פסוק היסוד של היהדות' },
           { front: '"וְאָהַבְתָּ לְרֵעֲךָ כָּמוֹךָ"', back: 'ויקרא יט:יח – "כלל גדול בתורה"' },
           { front: '"לֹא תִרְצָח, לֹא תִנְאָף, לֹא תִגְנֹב"', back: 'שמות כ – שלושה מעשרת הדיברות' }
-        ]
-      }
+        ] },
+      { type: 'flipcards', q: 'עוד פסוקים מפורסמים – הפכי כדי לראות:',
+        cards: [
+          { front: '"וַיֹּאמֶר אֱלֹהִים יְהִי אוֹר וַיְהִי אוֹר"', back: 'בראשית א:ג – בריאת האור' },
+          { front: '"אָנֹכִי ה׳ אֱלֹהֶיךָ אֲשֶׁר הוֹצֵאתִיךָ מֵאֶרֶץ מִצְרַיִם"', back: 'שמות כ:ב – הדיבר הראשון' },
+          { front: '"זָכוֹר אֶת יוֹם הַשַּׁבָּת לְקַדְּשׁוֹ"', back: 'שמות כ:ח – שמירת השבת' },
+          { front: '"כַּבֵּד אֶת אָבִיךָ וְאֶת אִמֶּךָ"', back: 'שמות כ:יב – כיבוד הורים' }
+        ] },
+      { type: 'choice', q: 'מה פירוש הסימון: דברים ו:ד?',
+        opts: ['ספר דברים, פרק ו׳, פסוק ד׳', 'ספר דברים, פסוק ו׳, פרק ד׳', 'ספר ו׳, פרק דברים', 'שמות, פרק ו׳, פסוק ד׳'], ans: 0,
+        exp: 'דברים ו:ד = ספר דברים, פרק ו׳ (6), פסוק ד׳ (4) – "שמע ישראל".' },
+      { type: 'choice', q: 'בסימון "שמות כ:ב" – מה מייצג המספר "כ"?', opts: ['פסוק 20', 'פרק 20', 'ספר 20', 'דף 20'], ans: 1,
+        exp: 'כ = 20, והוא מספר הפרק. ב׳ הוא הפסוק.' },
+      { type: 'choice', fixed: true, q: 'מהו מספר הפרק בסימון "תהילים כג:א"?', opts: ['1', '3', '23', '2'], ans: 2,
+        exp: 'כג = 23. תהילים פרק כ"ג (23), פסוק א׳ (1).' },
+      { type: 'tf', q: 'בסימון "ויקרא יט:יח" – "יט" הוא מספר הפסוק', ans: false,
+        exp: 'לא נכון! יט = 19 הוא מספר הפרק, ו"יח" (18) הוא הפסוק.' },
+      { type: 'tf', q: 'בסימון "ישעיה מ:כח" – ספר ישעיה', ans: true,
+        exp: 'נכון! הסימון מפנה לספר ישעיה, פרק מ׳ (40), פסוק כ"ח (28).' },
+      { type: 'tf', q: 'בסימון "בראשית ב:ד" – "בראשית" הוא מספר הפרק', ans: false,
+        exp: 'לא נכון! "בראשית" הוא שם הספר. ב׳ הוא הפרק וד׳ הוא הפסוק.' },
+      { type: 'choice', q: 'באיזה ספר ופרק נמצא הפסוק "שמע ישראל"?',
+        opts: ['שמות ו:ד', 'דברים ו:ד', 'ויקרא ו:ד', 'במדבר ו:ד'], ans: 1,
+        exp: 'דברים ו:ד – "שְׁמַע יִשְׂרָאֵל ה׳ אֱלֹהֵינוּ ה׳ אֶחָד".' },
+      { type: 'choice', q: 'היכן נמצא הפסוק "וְאָהַבְתָּ לְרֵעֲךָ כָּמוֹךָ"?',
+        opts: ['בראשית יט:יח', 'ויקרא יט:יח', 'שמות יט:יח', 'דברים יט:יח'], ans: 1,
+        exp: 'ויקרא יט:יח.' },
+      { type: 'choice', q: 'כל פרק בתנ"ך מחולק ל...', opts: ['פסוקים', 'ספרים', 'חלקים', 'דפים'], ans: 0,
+        exp: 'ספר מחולק לפרקים, ופרק מחולק לפסוקים.' },
+      { type: 'order', q: 'סדרי את שלבי החיפוש של פסוק:', items: ['מוצאים את הספר', 'מוצאים את הפרק', 'מוצאים את הפסוק'],
+        exp: 'ספר ← פרק ← פסוק' }
     ]
   },
   {
@@ -957,61 +948,91 @@ const MISSIONS = [
     title: 'טעמי מקרא',
     desc: 'זיהוי, מיקום, חילוק פסוק',
     color: '#10b981',
-    lesson: 'טעמי מקרא: כל מילה במקרא נושאת טעם. יש טעמים "מפסיקים" (מחלקים את הפסוק לחצאים – כמו סילוק ואתנחתא) ו"מחברים" (מחברים מילים). האתנחתא (◌֑) = הפסקה באמצע פסוק. הסוף = סוף הפסוק.',
+    lesson: 'טעמי מקרא: כל מילה במקרא נושאת טעם. יש טעמים "מפסיקים" (מחלקים את הפסוק לחלקים, כמו סילוק ואתנחתא) ו"מחברים" (מחברים מילים, כמו מרכא ומונח). האתנחתא = הפסקה באמצע הפסוק. הסילוק = הטעם שבסוף הפסוק, ואחריו מופיע הסימן ׃ (סוף פסוק).',
     questions: [
-      {
-        type: 'choice',
-        q: 'מה תפקיד טעמי המקרא?',
-        opts: [
-          'לקשט את הטקסט',
-          'לציין ניגון, הטעמה וחלוקת הפסוק',
-          'לתרגם את המילים',
-          'לסמן שגיאות כתיב'
-        ],
-        ans: 1,
-        exp: 'טעמי המקרא מציינים גם את הניגון (מנגינה לקריאה בבית-הכנסת), גם את ההטעמה וגם את החלוקה הלוגית של הפסוק.'
-      },
-      {
-        type: 'tf',
-        q: 'האתנחתא מחלקת את הפסוק לשני חצאים',
-        ans: true,
-        exp: 'נכון! האתנחתא (נראית כמו ◌֑ מתחת למילה) מציינת הפסקה גדולה באמצע הפסוק – כמו פסיק חזק.'
-      },
-      {
-        type: 'choice',
-        q: 'כמה חלקים עיקריים מחלקת האתנחתא את הפסוק?',
-        opts: ['3', '4', '2', '5'],
-        ans: 2,
-        exp: 'שני חלקים! החלק לפני האתנחתא והחלק אחריה. לאחר האתנחתא מגיע הסילוק – סוף הפסוק.'
-      },
-      {
-        type: 'choice',
-        q: 'אילו מהטעמים הבאים הוא "מפסיק" (מחלק את הפסוק)?',
-        opts: ['מרכא', 'מונח', 'אתנחתא', 'שלשלת'],
-        ans: 2,
-        exp: 'האתנחתא היא טעם מפסיק! היא מחלקת את הפסוק לשני חצאים.'
-      },
-      {
-        type: 'tf',
-        q: 'כל מילה במקרא נושאת טעם',
-        ans: true,
-        exp: 'נכון! כל מילה במקרא מנוקדת ונושאת טעם. זה מה שמאפשר קריאה מדויקת ומנגינה אחידה בבית-הכנסת.'
-      },
-      {
-        type: 'choice',
-        q: 'מה ההבדל בין טעם "מפסיק" לטעם "מחבר"?',
-        opts: [
-          'מפסיק – מנגינה גבוהה, מחבר – מנגינה נמוכה',
-          'מפסיק – יוצר הפסקה והפרדה, מחבר – מחבר מילים יחד',
-          'מפסיק – בתחילת פסוק, מחבר – בסוף פסוק',
-          'אין הבדל, שניהם אותו דבר'
-        ],
-        ans: 1,
-        exp: 'מפסיק = יוצר הפסקה לוגית בין חלקי הפסוק. מחבר = מחבר מילות ביניים לחלק הסמוך. ביחד הם בונים את מבנה הפסוק.'
-      }
+      { type: 'choice', q: 'מה תפקיד טעמי המקרא?',
+        opts: ['לקשט את הטקסט', 'לציין ניגון, הטעמה וחלוקת הפסוק', 'לתרגם את המילים', 'לסמן שגיאות כתיב'], ans: 1,
+        exp: 'טעמי המקרא מציינים גם את הניגון (לקריאה בבית הכנסת), גם את ההטעמה וגם את החלוקה הלוגית של הפסוק.' },
+      { type: 'tf', q: 'האתנחתא מחלקת את הפסוק לשני חצאים', ans: true,
+        exp: 'נכון! האתנחתא מציינת הפסקה גדולה באמצע הפסוק – כמו פסיק חזק.' },
+      { type: 'choice', fixed: true, q: 'לכמה חלקים עיקריים מחלקת האתנחתא את הפסוק?', opts: ['3', '4', '2', '5'], ans: 2,
+        exp: 'לשני חלקים: החלק שלפני האתנחתא והחלק שאחריה (עד הסילוק שבסוף הפסוק).' },
+      { type: 'choice', q: 'אילו מהטעמים הבאים הוא "מפסיק" (מחלק את הפסוק)?', opts: ['מרכא', 'מונח', 'אתנחתא', 'מהפך'], ans: 2,
+        exp: 'האתנחתא היא טעם מפסיק. מרכא, מונח ומהפך הם טעמים מחברים.' },
+      { type: 'tf', q: 'כל מילה במקרא נושאת טעם', ans: true,
+        exp: 'נכון! כל מילה במקרא (בדפוס) נושאת טעם. זה מאפשר קריאה מדויקת ומנגינה אחידה.' },
+      { type: 'choice', q: 'מה ההבדל בין טעם "מפסיק" לטעם "מחבר"?',
+        opts: ['מפסיק – מנגינה גבוהה, מחבר – מנגינה נמוכה', 'מפסיק – יוצר הפסקה והפרדה, מחבר – מחבר מילים יחד',
+               'מפסיק – בתחילת פסוק, מחבר – בסוף פסוק', 'אין הבדל, שניהם אותו דבר'], ans: 1,
+        exp: 'מפסיק = יוצר הפסקה לוגית בין חלקי הפסוק. מחבר = מחבר את המילה למילה שאחריה.' },
+      { type: 'tf', q: 'האתנחתא מופיעה בסוף הפסוק', ans: false,
+        exp: 'לא נכון! האתנחתא באמצע הפסוק. בסוף הפסוק יש סילוק.' },
+      { type: 'choice', q: 'איזה טעם מופיע בסוף הפסוק?', opts: ['אתנחתא', 'סילוק', 'מרכא', 'מונח'], ans: 1,
+        exp: 'הסילוק הוא הטעם האחרון בפסוק, ואחריו מופיע הסימן ׃ (סוף פסוק).' },
+      { type: 'tf', q: 'הסימן ׃ בסוף פסוק נקרא "סוף פסוק"', ans: true,
+        exp: 'נכון! שתי הנקודות בסוף הפסוק נקראות סוף פסוק.' },
+      { type: 'choice', q: 'איזה מהטעמים הבאים הוא "מחבר"?', opts: ['אתנחתא', 'סילוק', 'מונח', 'זקף קטן'], ans: 2,
+        exp: 'מונח הוא טעם מחבר. אתנחתא, סילוק וזקף קטן הם מפסיקים.' },
+      { type: 'tf', q: 'מרכא הוא טעם מחבר', ans: true,
+        exp: 'נכון! מרכא מחבר את המילה למילה הבאה.' },
+      { type: 'tf', q: 'מונח הוא טעם מפסיק', ans: false,
+        exp: 'לא נכון! מונח הוא טעם מחבר.' },
+      { type: 'tf', q: 'בספר תורה הכתוב על קלף מופיעים טעמי המקרא', ans: false,
+        exp: 'לא נכון! ספר תורה כתוב בלי ניקוד ובלי טעמים. הטעמים מופיעים בחומש ובתנ"ך המודפסים.' },
+      { type: 'choice', q: 'למה דומים הטעמים המפסיקים בכתיבה רגילה?',
+        opts: ['לפסיק ולנקודה', 'לסימן שאלה בלבד', 'לכותרת', 'למספר עמוד'], ans: 0,
+        exp: 'הטעמים המפסיקים מחלקים את הפסוק, בערך כמו פסיק ונקודה.' },
+      { type: 'choice', q: 'באיזה חלק של הפסוק מופיעה האתנחתא בדרך כלל?',
+        opts: ['בתחילתו', 'באמצעו', 'בסופו', 'אין לה מקום קבוע'], ans: 1,
+        exp: 'האתנחתא מחלקת את הפסוק באמצעו.' }
     ]
   }
 ];
+
+// ===== HELPERS =====
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
+
+// remember which questions were already shown, so each play gets new ones
+const SEEN_KEY = 'maya_seen_v1';
+function loadSeen() { try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch (e) { return {}; } }
+function saveSeen(s) { try { localStorage.setItem(SEEN_KEY, JSON.stringify(s)); } catch (e) {} }
+
+function pickRound(m) {
+  const seen = loadSeen();
+  let used = (seen[m.id] || []).filter(i => i < m.questions.length);
+  const all = m.questions.map((_, i) => i);
+  const fresh = all.filter(i => !used.includes(i));
+  let chosen;
+  if (fresh.length >= ROUND_SIZE) {
+    chosen = shuffle(fresh).slice(0, ROUND_SIZE);
+    used = used.concat(chosen);
+  } else {
+    // pool exhausted: take what's left unseen, top up with others, start a new cycle
+    const rest = shuffle(all.filter(i => !fresh.includes(i))).slice(0, ROUND_SIZE - fresh.length);
+    chosen = shuffle(fresh.concat(rest));
+    used = chosen.slice();
+  }
+  seen[m.id] = used;
+  saveSeen(seen);
+  return chosen.map(i => m.questions[i]);
+}
+
+// each question is worth qWeight points; a perfect play = 100
+function award(fraction) {
+  const pts = fraction * qWeight;
+  missionScore += pts;
+  totalScore += pts;
+  updateScore();
+  const r = Math.round(pts);
+  if (r > 0) showToast('+' + r + ' ✨');
+}
 
 // ===== TIMER =====
 function startTimer() {
@@ -1041,7 +1062,7 @@ function renderHome() {
   document.getElementById('game-screen').style.display = 'none';
   document.getElementById('mission-end').style.display = 'none';
   document.getElementById('end-screen').style.display = 'none';
-  document.getElementById('mission-counter').textContent = missionDone.length + '/5';
+  document.getElementById('mission-counter').textContent = missionDone.length + '/' + MISSIONS.length;
 
   const list = document.getElementById('missions-list');
   list.innerHTML = '';
@@ -1054,7 +1075,7 @@ function renderHome() {
       <div class="mission-info">
         <div class="mission-title">${m.title}</div>
         <div class="mission-desc">${m.desc}</div>
-        ${done && missionScores[m.id] !== undefined ? `<div style="font-size:12px;color:var(--gold);margin-top:3px">הניקוד שלך: ${missionScores[m.id]}</div>` : ''}
+        ${done && missionScores[m.id] !== undefined ? `<div style="font-size:12px;color:var(--gold);margin-top:3px">הניקוד שלך: ${Math.round(missionScores[m.id])}/${MAX_PER_MISSION}</div>` : ''}
       </div>
       <div class="mission-status">${done ? '✅' : '▶️'}</div>
     `;
@@ -1072,12 +1093,16 @@ function goHome() { renderHome(); }
 // ===== START MISSION =====
 function startMission(id) {
   currentMission = MISSIONS.find(m => m.id === id);
-  // replaying a mission: remove its old score so the total isn't double counted
+
+  // replaying: drop the old score so the total isn't double counted
   if (missionScores[id] !== undefined) {
-    totalScore -= missionScores[id];
+    totalScore = Math.max(0, totalScore - missionScores[id]);
     delete missionScores[id];
     updateScore();
   }
+
+  currentRound = pickRound(currentMission);
+  qWeight = MAX_PER_MISSION / currentRound.length;
   currentQ = 0;
   missionScore = 0;
   pendingAnswer = false;
@@ -1087,7 +1112,7 @@ function startMission(id) {
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
   document.getElementById('mission-end').style.display = 'none';
-  document.getElementById('mission-label').textContent = 'משימה ' + (id+1) + ' מתוך 5';
+  document.getElementById('mission-label').textContent = 'משימה ' + (id+1) + ' מתוך ' + MISSIONS.length;
   document.getElementById('mission-title-game').textContent = currentMission.title;
 
   startTimer();
@@ -1096,7 +1121,7 @@ function startMission(id) {
 
 // ===== RENDER QUESTION =====
 function renderQuestion() {
-  const qs = currentMission.questions;
+  const qs = currentRound;
   const prog = (currentQ / qs.length) * 100;
   document.getElementById('progress-bar').style.width = prog + '%';
   document.getElementById('next-btn').classList.remove('show');
@@ -1114,57 +1139,58 @@ function renderQuestion() {
 
 // ===== CHOICE =====
 function renderChoice(q, area) {
+  // shuffle the options (unless they are an ordered list like numbers)
+  const order = q.fixed ? q.opts.map((_, i) => i) : shuffle(q.opts.map((_, i) => i));
+  const opts = order.map(i => q.opts[i]);
+  currentQuestion = { correct: order.indexOf(q.ans), exp: q.exp };
   area.innerHTML = `
     <div class="q-card">
       <div class="q-text">${q.q}</div>
       <div class="choices" id="choices">
-        ${q.opts.map((o,i) => `<button class="choice-btn" onclick="answerChoice(${i},${q.ans},'${escStr(q.exp)}')">${o}</button>`).join('')}
+        ${opts.map((o,i) => `<button class="choice-btn" onclick="answerChoice(${i})">${o}</button>`).join('')}
       </div>
       <div class="feedback-box" id="feedback"></div>
     </div>
   `;
 }
 
-function escStr(s) {
-  return s.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
-}
-
-function answerChoice(picked, correct, exp) {
+function answerChoice(picked) {
   if (pendingAnswer) return;
   pendingAnswer = true;
-  const btns = document.querySelectorAll('.choice-btn');
-  btns.forEach((b,i) => {
+  const correct = currentQuestion.correct;
+  document.querySelectorAll('.choice-btn').forEach((b,i) => {
     b.disabled = true;
     if (i === correct) b.classList.add('correct');
     if (i === picked && picked !== correct) b.classList.add('wrong');
   });
   const ok = picked === correct;
-  if (ok) { missionScore += 10; totalScore += 10; updateScore(); showToast('+10 ✨'); }
-  showFeedback(ok, exp);
+  if (ok) award(1);
+  showFeedback(ok, currentQuestion.exp);
   document.getElementById('next-btn').classList.add('show');
 }
 
 // ===== TRUE/FALSE =====
 function renderTF(q, area) {
+  currentQuestion = { ans: q.ans, exp: q.exp };
   area.innerHTML = `
     <div class="q-card">
       <div class="tf-statement">${q.q}</div>
       <div class="tf-buttons">
-        <button class="tf-btn true-btn" onclick="answerTF(true,${q.ans},'${escStr(q.exp)}')">✅ נכון</button>
-        <button class="tf-btn false-btn" onclick="answerTF(false,${q.ans},'${escStr(q.exp)}')">❌ לא נכון</button>
+        <button class="tf-btn true-btn" onclick="answerTF(true)">✅ נכון</button>
+        <button class="tf-btn false-btn" onclick="answerTF(false)">❌ לא נכון</button>
       </div>
       <div class="feedback-box" id="feedback"></div>
     </div>
   `;
 }
 
-function answerTF(picked, correct, exp) {
+function answerTF(picked) {
   if (pendingAnswer) return;
   pendingAnswer = true;
   document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
-  const ok = (picked === correct);
-  if (ok) { missionScore += 10; totalScore += 10; updateScore(); showToast('+10 ✨'); }
-  showFeedback(ok, exp);
+  const ok = (picked === currentQuestion.ans);
+  if (ok) award(1);
+  showFeedback(ok, currentQuestion.exp);
   document.getElementById('next-btn').classList.add('show');
 }
 
@@ -1185,7 +1211,7 @@ function renderFlip(q, area) {
       </div>
     </div>
   `;
-  missionScore += 10; totalScore += 10; updateScore();
+  award(1);
   document.getElementById('next-btn').classList.add('show');
 }
 
@@ -1196,12 +1222,7 @@ function flipCard(i) {
 
 // ===== SORT =====
 function renderSort(q, area) {
-  sortState = {
-    q: q,
-    placedA: [],
-    placedB: [],
-    correct: 0
-  };
+  sortState = { q: q, correct: 0, selected: null };
 
   area.innerHTML = `
     <div class="q-card">
@@ -1222,8 +1243,6 @@ function renderSort(q, area) {
       <div class="feedback-box" id="feedback"></div>
     </div>
   `;
-
-  sortState.selected = null;
 }
 
 function pickSortItem(i) {
@@ -1234,6 +1253,7 @@ function pickSortItem(i) {
   if (sortState.selected === i) {
     item.style.borderColor = '';
     sortState.selected = null;
+    document.getElementById('feedback').className = 'feedback-box';
     return;
   }
 
@@ -1241,7 +1261,6 @@ function pickSortItem(i) {
   item.style.borderColor = 'var(--gold)';
   sortState.selected = i;
 
-  // show bucket selection
   const fb = document.getElementById('feedback');
   fb.className = 'feedback-box show';
   fb.style.background = 'rgba(245,158,11,0.1)';
@@ -1257,7 +1276,7 @@ function pickSortItem(i) {
 
 function placeSortItem(bucketIdx) {
   const i = sortState.selected;
-  if (i === null) return;
+  if (i === null || i === undefined) return;
   const item = sortState.q.items[i];
   const el = document.getElementById('si' + i);
   el.classList.add('used');
@@ -1269,24 +1288,20 @@ function placeSortItem(bucketIdx) {
   if (item.bucket !== bucketIdx) placed.style.color = '#fca5a5';
   document.getElementById(bucketIdx === 0 ? 'bucketA' : 'bucketB').appendChild(placed);
 
-  // whole sort question is worth max 10 points, split across items (rounded cumulatively)
+  const n = sortState.q.items.length;
   if (item.bucket === bucketIdx) {
-    const n = sortState.q.items.length;
-    const before = Math.round(10 * sortState.correct / n);
     sortState.correct++;
-    const delta = Math.round(10 * sortState.correct / n) - before;
-    if (delta > 0) { missionScore += delta; totalScore += delta; updateScore(); showToast('+' + delta + ' ✨'); }
+    award(1 / n);
   }
 
   sortState.selected = null;
   document.getElementById('feedback').className = 'feedback-box';
 
-  // check if all placed
   const allUsed = sortState.q.items.every((_,idx) => document.getElementById('si'+idx).classList.contains('used'));
   if (allUsed) {
     pendingAnswer = true;
     setTimeout(() => {
-      showFeedback(true, sortState.q.exp);
+      showFeedback(sortState.correct === n, sortState.q.exp);
       document.getElementById('next-btn').classList.add('show');
     }, 400);
   }
@@ -1294,13 +1309,9 @@ function placeSortItem(bucketIdx) {
 
 // ===== ORDER =====
 function renderOrder(q, area) {
-  const shuffled = [...q.items].sort(() => Math.random() - 0.5);
-  orderState = {
-    q: q,
-    items: shuffled,
-    selected: [],
-    done: false
-  };
+  let shuffled;
+  do { shuffled = shuffle(q.items); } while (shuffled.every((x, i) => x === q.items[i]));
+  orderState = { q: q, items: shuffled, selected: [], done: false };
 
   area.innerHTML = `
     <div class="q-card">
@@ -1342,7 +1353,6 @@ function selectOrderItem(i) {
   el.classList.add('selected');
 
   if (orderState.selected.length === orderState.items.length) {
-    // check
     orderState.done = true;
     pendingAnswer = true;
     let correct = 0;
@@ -1357,10 +1367,7 @@ function selectOrderItem(i) {
         on.className = 'order-num wrong-o';
       }
     });
-    // max 10 points per question, like every other question type
-    const pts = Math.round(10 * correct / orderState.q.items.length);
-    missionScore += pts; totalScore += pts; updateScore();
-    if (pts > 0) showToast('+' + pts + ' ✨');
+    award(correct / orderState.q.items.length);
     showFeedback(correct === orderState.q.items.length, orderState.q.exp);
     document.getElementById('next-btn').classList.add('show');
   }
@@ -1375,7 +1382,7 @@ function showFeedback(ok, exp) {
   fb.innerHTML = `
     <div class="feedback-emoji">${ok ? '🎉' : '💡'}</div>
     <strong>${ok ? 'כל הכבוד!' : 'לא מדויק...'}</strong><br>
-    ${exp}
+    ${exp.replace(/\n/g, '<br>')}
   `;
 }
 
@@ -1385,7 +1392,7 @@ function nextQuestion() {
   pendingAnswer = false;
   document.getElementById('next-btn').classList.remove('show');
 
-  if (currentQ >= currentMission.questions.length) {
+  if (currentQ >= currentRound.length) {
     endMission();
   } else {
     renderQuestion();
@@ -1403,7 +1410,8 @@ function endMission() {
   document.getElementById('game-screen').style.display = 'none';
   document.getElementById('mission-end').style.display = 'block';
 
-  const pct = missionScore / (currentMission.questions.length * 10);
+  const shown = Math.round(missionScore);
+  const pct = shown / MAX_PER_MISSION;
   let emoji = '😕', title = 'אפשר טוב יותר!';
   if (pct >= 0.9) { emoji = '🏆'; title = 'מדהים!!! מושלם!'; }
   else if (pct >= 0.7) { emoji = '🌟'; title = 'כל הכבוד! עוד קצת!'; }
@@ -1411,7 +1419,7 @@ function endMission() {
 
   document.getElementById('me-emoji').textContent = emoji;
   document.getElementById('me-title').textContent = title;
-  document.getElementById('me-score').textContent = missionScore + ' נקודות';
+  document.getElementById('me-score').textContent = shown + ' / ' + MAX_PER_MISSION + ' נקודות';
   document.getElementById('me-lesson').innerHTML = '<div class="lesson-title">📚 מה למדנו:</div>' + currentMission.lesson;
 }
 
@@ -1419,9 +1427,10 @@ function endMission() {
 function showEndScreen() {
   document.getElementById('home-screen').style.display = 'none';
   document.getElementById('end-screen').style.display = 'block';
-  document.getElementById('final-score').textContent = totalScore;
+  const total = Math.round(totalScore);
+  document.getElementById('final-score').textContent = total;
 
-  const pct = totalScore / (MISSIONS.reduce((a,m) => a + m.questions.length * 10, 0));
+  const pct = total / (MISSIONS.length * MAX_PER_MISSION);
   let stars = '⭐', rank = 'ממשיכה ללמוד 📖';
   if (pct >= 0.9) { stars = '⭐⭐⭐'; rank = 'מלכת התנ"ך 👑'; }
   else if (pct >= 0.7) { stars = '⭐⭐'; rank = 'מאיה החכמה 🌟'; }
@@ -1432,15 +1441,15 @@ function showEndScreen() {
 
   let breakdown = '';
   MISSIONS.forEach(m => {
-    const sc = missionScores[m.id] ?? 0;
-    breakdown += `<div class="score-row"><span>${m.icon} ${m.title}</span><span class="pts">${sc}</span></div>`;
+    const sc = Math.round(missionScores[m.id] ?? 0);
+    breakdown += `<div class="score-row"><span>${m.icon} ${m.title}</span><span class="pts">${sc}/${MAX_PER_MISSION}</span></div>`;
   });
   document.getElementById('score-breakdown').innerHTML = breakdown;
 }
 
 // ===== UTILS =====
 function updateScore() {
-  document.getElementById('score-display').textContent = totalScore;
+  document.getElementById('score-display').textContent = Math.round(totalScore);
 }
 
 function showToast(msg) {
