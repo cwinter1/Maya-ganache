@@ -1102,7 +1102,8 @@ function startMission(id) {
   }
 
   currentRound = pickRound(currentMission);
-  qWeight = MAX_PER_MISSION / currentRound.length;
+  // flip cards are study-only (no points); the scored questions share the 100 points
+  qWeight = MAX_PER_MISSION / Math.max(1, currentRound.filter(q => q.type !== 'flipcards').length);
   currentQ = 0;
   missionScore = 0;
   pendingAnswer = false;
@@ -1211,7 +1212,6 @@ function renderFlip(q, area) {
       </div>
     </div>
   `;
-  award(1);
   document.getElementById('next-btn').classList.add('show');
 }
 
