@@ -651,6 +651,20 @@
     box-shadow: 0 4px 24px rgba(245,158,11,0.35);
   }
 
+  .learn-note {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid var(--gold);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .learn-note .learn-title { font-weight: 700; color: #fde68a; margin-bottom: 4px; }
+  .learn-note .learn-answer { color: #6ee7b7; font-weight: 700; }
+  .learn-note details { margin-top: 8px; color: var(--muted); font-size: 13px; }
+  .learn-note summary { cursor: pointer; color: #67e8f9; font-weight: 600; }
+
   #sound-btn {
     background: rgba(124,58,237,0.3);
     border: 1px solid var(--accent1);
@@ -1534,7 +1548,7 @@ function renderChoice(q, area) {
   // shuffle the options (unless they are an ordered list like numbers)
   const order = q.fixed ? q.opts.map((_, i) => i) : shuffle(q.opts.map((_, i) => i));
   const opts = order.map(i => q.opts[i]);
-  currentQuestion = { correct: order.indexOf(q.ans), exp: q.exp };
+  currentQuestion = { correct: order.indexOf(q.ans), exp: q.exp, correctText: q.opts[q.ans] };
   area.innerHTML = `
     <div class="q-card">
       <div class="q-text">${q.q}</div>
@@ -1557,13 +1571,13 @@ function answerChoice(picked) {
   });
   const ok = picked === correct;
   if (ok) award(1); else sounds.wrong();
-  showFeedback(ok, currentQuestion.exp);
+  showFeedback(ok, currentQuestion.exp, currentQuestion.correctText);
   document.getElementById('next-btn').classList.add('show');
 }
 
 // ===== TRUE/FALSE =====
 function renderTF(q, area) {
-  currentQuestion = { ans: q.ans, exp: q.exp };
+  currentQuestion = { ans: q.ans, exp: q.exp, correctText: q.ans ? 'ההיגד נכון ✅' : 'ההיגד לא נכון ❌' };
   area.innerHTML = `
     <div class="q-card">
       <div class="tf-statement">${q.q}</div>
@@ -1582,7 +1596,7 @@ function answerTF(picked) {
   document.querySelectorAll('.tf-btn').forEach(b => b.disabled = true);
   const ok = (picked === currentQuestion.ans);
   if (ok) award(1); else sounds.wrong();
-  showFeedback(ok, currentQuestion.exp);
+  showFeedback(ok, currentQuestion.exp, currentQuestion.correctText);
   document.getElementById('next-btn').classList.add('show');
 }
 
@@ -1695,7 +1709,10 @@ function placeSortItem(bucketIdx) {
   if (allUsed) {
     pendingAnswer = true;
     setTimeout(() => {
-      showFeedback(sortState.correct === n, sortState.q.exp);
+      const sq = sortState.q;
+      const group = b => sq.items.filter(x => x.bucket === b).map(x => x.text).join(', ');
+      showFeedback(sortState.correct === n, sq.exp,
+        '<br>' + sq.bucketA + ': ' + group(0) + '<br>' + sq.bucketB + ': ' + group(1));
       document.getElementById('next-btn').classList.add('show');
     }, 400);
   }
@@ -1765,13 +1782,27 @@ function selectOrderItem(i) {
     if (correct === orderState.q.items.length) sounds.correct();
     else if (correct > 0) sounds.partial();
     else sounds.wrong();
-    showFeedback(correct === orderState.q.items.length, orderState.q.exp);
+    showFeedback(correct === orderState.q.items.length, orderState.q.exp,
+      orderState.q.items.join(' → '));
     document.getElementById('next-btn').classList.add('show');
   }
 }
 
 // ===== FEEDBACK =====
-function showFeedback(ok, exp) {
+// shown only after a wrong answer: the right answer + a refresher of the topic
+function learnNote(correctText) {
+  return `
+    <div class="learn-note">
+      <div class="learn-title">📝 כדי ללמוד מהטעות</div>
+      ${correctText ? `<div><span class="learn-answer">✔️ התשובה הנכונה:</span> ${correctText}</div>` : ''}
+      <details>
+        <summary>📚 לחזרה על הנושא</summary>
+        ${currentMission.lesson}
+      </details>
+    </div>`;
+}
+
+function showFeedback(ok, exp, correctText) {
   const fb = document.getElementById('feedback');
   fb.className = 'feedback-box show ' + (ok ? 'ok' : 'fail');
   fb.style.background = '';
@@ -1780,6 +1811,7 @@ function showFeedback(ok, exp) {
     <div class="feedback-emoji">${ok ? '🎉' : '💡'}</div>
     <strong>${ok ? 'כל הכבוד!' : 'לא מדויק...'}</strong><br>
     ${exp.replace(/\n/g, '<br>')}
+    ${ok ? '' : learnNote(correctText)}
   `;
 }
 

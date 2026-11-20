@@ -43,7 +43,7 @@ function check(name, ok, detail) {
   });
 
   // ---- real-click helpers ----
-  async function answerQuestion(right) {
+  async function answerQuestion(right, skipNext) {
     const type = await page.evaluate(() => currentRound[currentQ].type);
     if (type === 'choice') {
       const [correct, n] = await page.evaluate(() => [currentQuestion.correct, document.querySelectorAll('.choice-btn').length]);
@@ -64,7 +64,7 @@ function check(name, ok, detail) {
     }
     // flip cards need no answer
     await page.locator('#next-btn.show').waitFor();
-    await page.locator('#next-btn').click();
+    if (!skipNext) await page.locator('#next-btn').click();
     return type;
   }
 
@@ -161,6 +161,35 @@ function check(name, ok, detail) {
   const hidden = await page.evaluate(() => getComputedStyle(document.getElementById('me-gif')).display === 'none');
   check('low result hides the success gif', bad.score < 70 ? hidden : true);
   await backHome();
+
+  console.log('\nLearning note after a mistake');
+  // every question type, answered wrong, must show the note with the correct answer;
+  // answered right it must not. Force a one-question round of each type.
+  const missionWith = { choice: 0, tf: 0, order: 0, sort: 2 };
+  for (const type of ['choice', 'tf', 'order', 'sort']) {
+    await page.evaluate(([t, m]) => {
+      const orig = pickRound;
+      pickRound = mission => [mission.questions.find(q => q.type === t)];
+      startMission(m);
+      pickRound = orig;
+    }, [type, missionWith[type]]);
+    await answerQuestion(false, true);
+    const note = page.locator('#feedback .learn-note');
+    const shown = (await note.count()) === 1;
+    const text = shown ? await note.innerText() : '';
+    check(`${type}: wrong answer shows the learning note with the correct answer`, shown && text.includes('התשובה הנכונה'), text.slice(0, 60));
+    check(`${type}: the note offers a topic refresher`, shown && (await note.locator('details').count()) === 1);
+    await page.evaluate(() => goHome());
+    await page.evaluate(([t, m]) => {
+      const orig = pickRound;
+      pickRound = mission => [mission.questions.find(q => q.type === t)];
+      startMission(m);
+      pickRound = orig;
+    }, [type, missionWith[type]]);
+    await answerQuestion(true, true);
+    check(`${type}: a correct answer shows no learning note`, (await page.locator('#feedback .learn-note').count()) === 0);
+    await page.evaluate(() => goHome());
+  }
 
   // ---------------------------------------------------------------
   console.log('\nSound');
